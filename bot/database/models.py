@@ -8,7 +8,7 @@ def init_db():
     """Инициализация базы данных"""
     conn = sqlite3.connect(DATABASE_PATH)
     cursor = conn.cursor()
-    
+
     # Создание таблицы пользователей
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS users (
@@ -22,7 +22,7 @@ def init_db():
             registration_date TEXT DEFAULT CURRENT_TIMESTAMP
         )
     ''')
-    
+
     # Создание таблицы записей веса
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS weight_records (
@@ -33,18 +33,46 @@ def init_db():
             FOREIGN KEY (user_id) REFERENCES users (id)
         )
     ''')
-    
-    # Создание таблицы записей шагов
+
+    # Создание таблицы типов активности
     cursor.execute('''
-        CREATE TABLE IF NOT EXISTS step_records (
+        CREATE TABLE IF NOT EXISTS activity_types (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            steps_count INTEGER NOT NULL,
-            record_date TEXT DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users (id)
+            name TEXT UNIQUE NOT NULL,
+            unit TEXT NOT NULL,  -- единица измерения (шаги, минуты, км, ккал)
+            calories_per_unit REAL,  -- коэффициент для перевода в калории (может быть NULL)
+            description TEXT  -- описание активности
         )
     ''')
+
+    # Заполнение таблицы типов активности по умолчанию
+    activities_defaults = [
+        ('walking', 'steps', 0.04, 'Ходьба (шаги)'),
+        ('running', 'minutes', 12.0, 'Бег (время в минутах)'),
+        ('cycling', 'km', 40.0, 'Велосипед (расстояние в км)'),
+        ('cardio', 'kcal', 1.0, 'Кардио (калории)')
+    ]
     
+    for activity in activities_defaults:
+        cursor.execute('''
+            INSERT OR IGNORE INTO activity_types (name, unit, calories_per_unit, description)
+            VALUES (?, ?, ?, ?)
+        ''', activity)
+
+    # Создание таблицы записей активности
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS activity_records (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER NOT NULL,
+            activity_type_id INTEGER NOT NULL,
+            value REAL NOT NULL,  -- значение в единицах измерения типа активности
+            calories REAL,  -- рассчитанные калории (может быть NULL, если уже указаны)
+            record_date TEXT DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (user_id) REFERENCES users (id),
+            FOREIGN KEY (activity_type_id) REFERENCES activity_types (id)
+        )
+    ''')
+
     # Создание таблицы прогресса
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS progress (
@@ -55,12 +83,13 @@ def init_db():
             FOREIGN KEY (user_id) REFERENCES users (id)
         )
     ''')
-    
+
     # Индексы для улучшения производительности
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_weight_records_user_date ON weight_records (user_id, record_date)')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_step_records_user_date ON step_records (user_id, record_date)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_activity_records_user_date ON activity_records (user_id, record_date)')
     cursor.execute('CREATE INDEX IF NOT EXISTS idx_weight_records_date ON weight_records (record_date)')
-    cursor.execute('CREATE INDEX IF NOT EXISTS idx_step_records_date ON step_records (record_date)')
-    
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_activity_records_date ON activity_records (record_date)')
+    cursor.execute('CREATE INDEX IF NOT EXISTS idx_activity_records_type ON activity_records (activity_type_id)')
+
     conn.commit()
     conn.close()

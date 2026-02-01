@@ -21,20 +21,34 @@ class NotificationScheduler:
 
     async def start_scheduler(self):
         """Запуск планировщика уведомлений"""
+        # Используем московский часовой пояс
+        tz = pytz.timezone('Europe/Moscow')
         self.running = True
+
+        # Переменные для отслеживания последней отправки
+        last_weight_notification_day = None
+        last_activity_notification_day = None
+
         while self.running:
-            now = datetime.now()
+            now = datetime.now(tz)
+            current_day = now.date()
 
-            # Проверяем, нужно ли отправить уведомления о весе (в 10:00)
-            if now.hour == 10 and now.minute == 0 and now.second < 10:
+            # Проверяем, нужно ли отправить уведомления о весе (в 10:00 по Московскому времени)
+            # Отправляем только один раз в день в 10:00
+            if (now.hour == 10 and now.minute == 0 and
+                last_weight_notification_day != current_day):
                 await self.send_weight_reminders()
+                last_weight_notification_day = current_day
 
-            # Проверяем, нужно ли отправить уведомления о шагах (в 22:00)
-            if now.hour == 22 and now.minute == 0 and now.second < 10:
-                await self.send_steps_reminders()
+            # Проверяем, нужно ли отправить уведомления об активности (в 22:00 по Московскому времени)
+            # Отправляем только один раз в день в 22:00
+            if (now.hour == 22 and now.minute == 0 and
+                last_activity_notification_day != current_day):
+                await self.send_activity_reminders()
+                last_activity_notification_day = current_day
 
-            # Проверяем каждую минуту
-            await asyncio.sleep(60)
+            # Проверяем каждые 30 секунд
+            await asyncio.sleep(30)
 
     async def send_weight_reminders(self):
         """Отправка напоминаний о вводе веса"""
@@ -57,8 +71,8 @@ class NotificationScheduler:
 
         conn.close()
 
-    async def send_steps_reminders(self):
-        """Отправка напоминаний о вводе количества шагов"""
+    async def send_activity_reminders(self):
+        """Отправка напоминаний о вводе активности"""
         conn = sqlite3.connect(DATABASE_PATH)
         cursor = conn.cursor()
 
@@ -71,7 +85,7 @@ class NotificationScheduler:
             try:
                 await self.bot.send_message(
                     chat_id=user_id,
-                    text="⏰ Не забудь сегодняшние шаги! Пожалуйста, введи количество шагов за сегодня. Используй команду /steps или просто пришли число."
+                    text="⏰ Не забудь ввести сегодняшнюю активность! Пожалуйста, используй команду /activity, чтобы ввести данные о своей активности за сегодня."
                 )
             except Exception as e:
                 print(f"Ошибка при отправке уведомления пользователю {user_id}: {e}")

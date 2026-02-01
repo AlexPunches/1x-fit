@@ -85,24 +85,24 @@ async def cmd_progress(message: Message):
 async def cmd_chart(message: Message):
     """Обработка команды /chart - отображение графика прогресса"""
     user_id = message.from_user.id
-    
+
     # Проверяем, зарегистрирован ли пользователь
     conn = sqlite3.connect(DATABASE_PATH)
     cursor = conn.cursor()
-    
+
     cursor.execute("""
         SELECT id, username, start_weight, target_weight, height
         FROM users
         WHERE id = ?
     """, (user_id,))
-    
+
     user_data_row = cursor.fetchone()
-    
+
     if not user_data_row:
         await message.answer("Сначала необходимо зарегистрироваться. Используй команду /start")
         conn.close()
         return
-    
+
     user_data = {
         'id': user_data_row[0],
         'username': user_data_row[1],
@@ -110,12 +110,12 @@ async def cmd_chart(message: Message):
         'target_weight': user_data_row[3],
         'height': user_data_row[4]
     }
-    
+
     conn.close()
-    
+
     # Создаем индивидуальный график
     chart_path = create_individual_chart(user_id, user_data)
-    
+
     if chart_path:
         # Отправляем график пользователю
         with open(chart_path, 'rb') as chart_file:
@@ -127,12 +127,94 @@ async def cmd_chart(message: Message):
         await message.answer("❌ Недостаточно данных для построения графика")
 
 
+@router.message(Command("activity_chart"))
+async def cmd_activity_chart(message: Message):
+    """Обработка команды /activity_chart - отображение графика активности"""
+    user_id = message.from_user.id
+
+    # Проверяем, зарегистрирован ли пользователь
+    conn = sqlite3.connect(DATABASE_PATH)
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT id FROM users
+        WHERE id = ?
+    """, (user_id,))
+
+    user_exists = cursor.fetchone()
+
+    if not user_exists:
+        await message.answer("Сначала необходимо зарегистрироваться. Используй команду /start")
+        conn.close()
+        return
+
+    conn.close()
+
+    # Создаем график активности
+    from utils.visualization import create_activity_chart
+    chart_path = create_activity_chart(user_id)
+
+    if chart_path:
+        # Отправляем график пользователю
+        with open(chart_path, 'rb') as chart_file:
+            await message.answer_photo(
+                photo=chart_file,
+                caption="📊 Твой график активности за последние 30 дней"
+            )
+    else:
+        await message.answer("❌ Недостаточно данных для построения графика активности")
+
+
+@router.message(Command("activities"))
+async def cmd_activities(message: Message):
+    """Обработка команды /activities - отображение статистики активности"""
+    user_id = message.from_user.id
+
+    # Проверяем, зарегистрирован ли пользователь
+    conn = sqlite3.connect(DATABASE_PATH)
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT id FROM users WHERE id = ?", (user_id,))
+    user_exists = cursor.fetchone()
+
+    if not user_exists:
+        await message.answer("Сначала необходимо зарегистрироваться. Используй команду /start")
+        conn.close()
+        return
+
+    # Получаем последние записи активности пользователя
+    cursor.execute("""
+        SELECT ar.value, at.name, at.unit, ar.calories, ar.record_date
+        FROM activity_records ar
+        JOIN activity_types at ON ar.activity_type_id = at.id
+        WHERE ar.user_id = ?
+        ORDER BY ar.record_date DESC
+        LIMIT 10
+    """, (user_id,))
+
+    activities = cursor.fetchall()
+
+    if activities:
+        activities_info = "📊 Твоя история активности (последние 10 записей):\n\n"
+        for value, name, unit, calories, date in activities:
+            if calories:
+                activities_info += f"• {name}: {value} {unit} (сожжено: {calories:.2f} ккал) - {date}\n"
+            else:
+                activities_info += f"• {name}: {value} {unit} - {date}\n"
+    else:
+        activities_info = "📊 У тебя пока нет записей об активности. Используй команду /activity, чтобы добавить."
+
+    await message.answer(activities_info)
+
+    conn.close()
+
+
 @router.message(Command("rating"))
 async def cmd_rating(message: Message):
     """Обработка команды /rating - отображение сравнительного графика"""
-    # Создаем сравнительный график
+    # Создаем сравнительный график прогресса
     chart_path = create_comparison_chart()
-    
+
     if chart_path:
         # Отправляем график всем пользователям
         with open(chart_path, 'rb') as chart_file:
@@ -142,3 +224,21 @@ async def cmd_rating(message: Message):
             )
     else:
         await message.answer("❌ Недостаточно данных для построения сравнительного графика")
+
+
+@router.message(Command("activity_rating"))
+async def cmd_activity_rating(message: Message):
+    """Обработка команды /activity_rating - отображение сравнительного графика активности"""
+    # Создаем сравнительный график активности
+    from utils.visualization import create_total_activity_chart
+    chart_path = create_total_activity_chart()
+
+    if chart_path:
+        # Отправляем график всем пользователям
+        with open(chart_path, 'rb') as chart_file:
+            await message.answer_photo(
+                photo=chart_file,
+                caption="📊 Сравнительный график активности участников (за последние 7 дней)"
+            )
+    else:
+        await message.answer("❌ Недостаточно данных для построения сравнительного графика активности")

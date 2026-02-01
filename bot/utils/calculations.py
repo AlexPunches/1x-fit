@@ -100,19 +100,62 @@ def calculate_adjusted_percentage(start_weight, current_weight, height):
     return percentage_loss * adjustment_factor
 
 
-def calculate_final_score(start_weight, current_weight, height, target_weight):
+def calculate_calories_from_activities(user_id, db_path, days=1):
+    """
+    Рассчитывает сумму сожженных калорий за последние N дней
+    :param user_id: ID пользователя
+    :param db_path: путь к базе данных
+    :param days: количество дней для учета (по умолчанию 1)
+    :return: сумма сожженных калорий
+    """
+    import sqlite3
+    from datetime import datetime, timedelta
+
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+
+    # Рассчитываем дату начала периода
+    start_date = (datetime.now() - timedelta(days=days)).strftime('%Y-%m-%d')
+
+    # Получаем сумму сожженных калорий за указанный период
+    cursor.execute("""
+        SELECT SUM(calories)
+        FROM activity_records
+        WHERE user_id = ? AND record_date >= ? AND calories IS NOT NULL
+    """, (user_id, start_date))
+
+    result = cursor.fetchone()[0]
+    conn.close()
+
+    return result if result is not None else 0
+
+
+def calculate_final_score(start_weight, current_weight, height, target_weight, user_id=None, db_path=None):
     """
     Рассчитывает итоговый прогресс с использованием комбинированной формулы
     :param start_weight: начальный вес
     :param current_weight: текущий вес
     :param height: рост
     :param target_weight: целевой вес
+    :param user_id: ID пользователя (для учета активностей)
+    :param db_path: путь к базе данных
     :return: итоговый прогресс
     """
     bmi_based_score = calculate_progress_points(start_weight, current_weight, height, target_weight)
     percentage_based_score = calculate_adjusted_percentage(start_weight, current_weight, height)
-    
+
     # Комбинируем оба подхода
-    final_score = (bmi_based_score * 0.6) + (percentage_based_score * 0.4)
-    
+    base_score = (bmi_based_score * 0.6) + (percentage_based_score * 0.4)
+
+    # Если указаны user_id и db_path, добавляем бонус за активности
+    activity_bonus = 0
+    if user_id is not None and db_path is not None:
+        # Получаем сожженные калории за последний день
+        daily_calories = calculate_calories_from_activities(user_id, db_path, days=1)
+
+        # Добавляем бонус за активности (например, 0.1 балла за каждые 100 калорий)
+        activity_bonus = daily_calories * 0.001
+
+    final_score = base_score + activity_bonus
+
     return final_score
