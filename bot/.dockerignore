@@ -1,0 +1,54 @@
+# Локальные файлы конфигурации
+.env
+.env.local
+.env.production
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+.coverage
+htmlcov
+.tox
+.nox
+.hypothesis/
+
+# Упаковка и сборка
+*.tar.gz
+*.zip
+*.tgz
+dist
+build
+*.egg-info
+
+# Виртуальные окружения
+venv
+env
+ENV
+
+# Логи
+*.log
+../logs
+
+# Документация
+../docs/_build
+
+# Другие файлы
+../.DS_Store
+Thumbs.db

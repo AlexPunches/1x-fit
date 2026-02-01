@@ -1,0 +1,68 @@
+[project]
+name = "1x-fit"
+version = "0.1.0"
+description = "Telegram bot for fitness and weight loss competition with fair progress tracking"
+authors = [{name = "Your Name", email = "your.email@example.com"}]
+requires-python = ">=3.13"
+dependencies = [
+    "aiogram>=3.13.0",
+    "matplotlib>=3.8.0",
+    "seaborn>=0.13.0",
+    "schedule>=1.2.0",
+    "python-dotenv>=1.0.0",
+    "pytz>=2023.3",
+    "pillow>=10.0.0"
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "mypy>=1.0.0",
+    "ruff>=0.1.0"
+]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=7.0.0",
+    "mypy>=1.0.0",
+    "ruff>=0.1.0"
+]
+
+[tool.ruff]
+# Укажем, какие правила использовать
+select = [
+    "E",  # Ошибки pycodestyle
+    "W",  # Предупреждения pycodestyle
+    "F",  # Ошибки Pyflakes
+    "I",  # flake8-import-order
+    "C",  # flake8-comprehensions
+    "B",  # flake8-bugbear
+]
+
+# Исключим некоторые правила
+ignore = [
+    "E501",  # Длина строки (будет контролироваться formatter'ом)
+]
+
+# Укажем файлы и директории для исключения
+extend-ignore = []
+line-length = 88
+indent-width = 4
+target-version = "py313"
+
+[tool.ruff.format]
+# Использовать те же настройки, что и Black
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
+
+[tool.ruff.lint]
+# Выносить предупреждения в первую очередь
+fixable = ["ALL"]
+unfixable = []
+
+# Настройки для импортов
+[tool.ruff.lint.isort]
+known-first-party = ["bot"]
+known-third-party = ["aiogram", "sqlite3", "matplotlib", "dotenv"]
