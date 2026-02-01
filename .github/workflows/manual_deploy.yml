@@ -1,0 +1,46 @@
+name: Manual Deploy
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Deploy to VM
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.VM_HOST }}
+        username: ${{ secrets.VM_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          # Создание директории, если не существует
+          sudo mkdir -p /opt/1x-fit/
+
+          # Создание файла .env с переменными окружения
+          echo "${{ secrets.BOT_ENV_FILE }}" | base64 -d | sudo tee /opt/1x-fit/.env
+
+          # Проверка наличия volume для данных
+          docker volume inspect bot-db-data >/dev/null 2>&1 || docker volume create bot-db-data
+          docker volume inspect bot-charts-data >/dev/null 2>&1 || docker volume create bot-charts-data
+
+          # Обновление образа
+          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/1x-fit:latest
+
+          # Остановка и удаление старого контейнера
+          docker stop 1x-fit-bot || true
+          docker rm 1x-fit-bot || true
+
+          # Запуск нового контейнера
+          docker run -d \
+            --name 1x-fit-bot \
+            --env-file /opt/1x-fit/.env \
+            -p 8000:8000 \
+            -v bot-db-data:/app/data \
+            -v bot-charts-data:/app/charts \
+            --restart unless-stopped \
+            ${{ secrets.DOCKERHUB_USERNAME }}/1x-fit:latest

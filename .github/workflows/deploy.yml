@@ -3,6 +3,9 @@ name: Build, Publish and Deploy
 on:
   push:
     branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:  # Позволяет запускать workflow вручную
 
 jobs:
   build-and-push:
@@ -39,16 +42,16 @@ jobs:
         tags: |
           type=ref,event=branch
           type=ref,event=pr
-          type=sha,prefix={{branch}}-
+          type=sha,prefix=sha-
           type=raw,value=latest
 
-    - name: Build and push Docker image
+    - name: Build Docker image
       uses: docker/build-push-action@v5
       with:
         context: ./bot
         file: ./bot/Dockerfile
         platforms: linux/amd64,linux/arm64
-        push: true
+        push: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch' }}
         tags: ${{ steps.meta.outputs.tags }}
         labels: ${{ steps.meta.outputs.labels }}
         cache-from: type=local,src=/tmp/.buildx-cache
@@ -63,6 +66,7 @@ jobs:
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'  # Выполнять деплой только при ручном запуске
 
     steps:
     - name: Checkout code
