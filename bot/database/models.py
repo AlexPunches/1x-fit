@@ -1,12 +1,12 @@
 # bot/database/models.py
 
 import sqlite3
-from config import DATABASE_PATH
+from settings import settings
 
 
 def init_db():
     """Инициализация базы данных"""
-    conn = sqlite3.connect(DATABASE_PATH)
+    conn = sqlite3.connect(settings.database_path)
     cursor = conn.cursor()
 
     # Создание таблицы пользователей
@@ -52,7 +52,7 @@ def init_db():
         ('cycling', 'km', 40.0, 'Велосипед (расстояние в км)'),
         ('cardio', 'kcal', 1.0, 'Кардио (калории)')
     ]
-    
+
     for activity in activities_defaults:
         cursor.execute('''
             INSERT OR IGNORE INTO activity_types (name, unit, calories_per_unit, description)

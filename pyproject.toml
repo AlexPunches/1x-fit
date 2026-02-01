@@ -11,7 +11,8 @@ dependencies = [
     "schedule>=1.2.0",
     "python-dotenv>=1.0.0",
     "pytz>=2023.3",
-    "pillow>=10.0.0"
+    "pillow>=10.0.0",
+    "pydantic-settings>=2.0.0"
 ]
 
 [project.optional-dependencies]
@@ -65,4 +66,4 @@ unfixable = []
 # Настройки для импортов
 [tool.ruff.lint.isort]
 known-first-party = ["bot"]
-known-third-party = ["aiogram", "sqlite3", "matplotlib", "dotenv"]
+known-third-party = ["aiogram", "sqlite3", "matplotlib", "dotenv", "pydantic_settings"]

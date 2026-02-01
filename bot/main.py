@@ -2,7 +2,6 @@
 
 import asyncio
 import logging
-import os
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
@@ -10,7 +9,7 @@ from aiogram.enums import ParseMode
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 from aiohttp import web
 
-from config import BOT_TOKEN
+from settings import settings
 from handlers import setup_handlers
 from database.models import init_db
 from handlers.notifications import scheduler
@@ -34,7 +33,7 @@ async def main():
     logging.basicConfig(level=logging.INFO)
 
     # Инициализация бота
-    bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+    bot = Bot(token=settings.bot_token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 
     # Инициализация диспетчера
     dp = Dispatcher()
@@ -42,8 +41,8 @@ async def main():
     # Настройка обработчиков
     setup_handlers(dp)
 
-    # Получение webhook URL из переменной окружения или использование стандартного
-    webhook_url = os.getenv('WEBHOOK_URL')
+    # Получение webhook URL из настроек
+    webhook_url = settings.webhook_url
 
     # Установка webhook
     # Если используется самоподписной сертификат, нужно передать его в Telegram
@@ -69,9 +68,9 @@ async def main():
     app.on_startup.append(on_startup)
     app.on_cleanup.append(on_cleanup)
 
-    # Получение хоста и порта из переменных окружения
-    host = os.getenv('HOST', '0.0.0.0')
-    port = int(os.getenv('PORT', 8000))
+    # Получение хоста и порта из настроек
+    host = settings.host
+    port = settings.port
 
     # Запуск веб-сервера
     runner = web.AppRunner(app)

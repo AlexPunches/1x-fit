@@ -1,7 +1,7 @@
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 import os
-from config import CHARTS_DIR
+from settings import settings
 from database.models import DATABASE_PATH
 import sqlite3
 import numpy as np
@@ -83,8 +83,8 @@ def create_individual_chart(user_id, user_data):
     plt.xticks(rotation=45)
 
     # Сохраняем график
-    os.makedirs(CHARTS_DIR, exist_ok=True)
-    filename = f"{CHARTS_DIR}individual_{user_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+    os.makedirs(settings.charts_dir, exist_ok=True)
+    filename = f"{settings.charts_dir}individual_{user_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
     plt.tight_layout()
     plt.savefig(filename)
     plt.close()
@@ -168,8 +168,8 @@ def create_activity_chart(user_id):
     plt.xticks(rotation=45)
 
     # Сохраняем график
-    os.makedirs(CHARTS_DIR, exist_ok=True)
-    filename = f"{CHARTS_DIR}activity_{user_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+    os.makedirs(settings.charts_dir, exist_ok=True)
+    filename = f"{settings.charts_dir}activity_{user_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
     plt.tight_layout()
     plt.savefig(filename)
     plt.close()
@@ -242,8 +242,8 @@ def create_comparison_chart():
                 ha='left', va='center', fontweight='bold')
     
     # Сохраняем график
-    os.makedirs(CHARTS_DIR, exist_ok=True)
-    filename = f"{CHARTS_DIR}comparison_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+    os.makedirs(settings.charts_dir, exist_ok=True)
+    filename = f"{settings.charts_dir}comparison_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
     plt.tight_layout()
     plt.savefig(filename)
     plt.close()
@@ -304,8 +304,8 @@ def create_total_activity_chart():
                 ha='left', va='center', fontweight='bold')
 
     # Сохраняем график
-    os.makedirs(CHARTS_DIR, exist_ok=True)
-    filename = f"{CHARTS_DIR}total_activity_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+    os.makedirs(settings.charts_dir, exist_ok=True)
+    filename = f"{settings.charts_dir}total_activity_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
     plt.tight_layout()
     plt.savefig(filename)
     plt.close()
