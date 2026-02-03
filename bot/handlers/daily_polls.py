@@ -97,9 +97,9 @@ async def process_weight_input(message: Message):
             weight_change = start_weight - weight
 
             if weight_change > 0:
-                await message.answer(f"✅ Вес сохранен: {weight} кг\nТы сбросил(а) {abs(weight_change):.2f} кг")
+                await message.answer(f"✅ Вес сохранен: {weight} кг\nТы сбросил {abs(weight_change):.2f} кг")
             elif weight_change < 0:
-                await message.answer(f"⚠️ Вес сохранен: {weight} кг\nТы набрал(а) {abs(weight_change):.2f} кг")
+                await message.answer(f"⚠️ Вес сохранен: {weight} кг\nТы набрал {abs(weight_change):.2f} кг")
             else:
                 await message.answer(f"✅ Вес сохранен: {weight} кг\nВес не изменился")
         else:

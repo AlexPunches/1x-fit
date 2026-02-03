@@ -4,7 +4,7 @@ import sqlite3
 
 from aiogram import Router
 from aiogram.filters import Command
-from aiogram.types import Message
+from aiogram.types import FSInputFile, Message
 from database.models import DATABASE_PATH
 from utils.visualization import create_comparison_chart, create_individual_chart
 
@@ -117,11 +117,10 @@ async def cmd_chart(message: Message):
 
     if chart_path:
         # Отправляем график пользователю
-        with open(chart_path, "rb") as chart_file:
-            await message.answer_photo(
-                photo=chart_file,
-                caption="📊 Твой индивидуальный график прогресса",
-            )
+        await message.answer_photo(
+            photo=FSInputFile(chart_path),
+            caption="📊 Твой индивидуальный график прогресса",
+        )
     else:
         await message.answer("❌ Недостаточно данных для построения графика")
 
@@ -155,11 +154,10 @@ async def cmd_activity_chart(message: Message):
 
     if chart_path:
         # Отправляем график пользователю
-        with open(chart_path, "rb") as chart_file:
-            await message.answer_photo(
-                photo=chart_file,
-                caption="📊 Твой график активности за последние 30 дней",
-            )
+        await message.answer_photo(
+            photo=FSInputFile(chart_path),
+            caption="📊 Твой график активности за последние 30 дней",
+        )
     else:
         await message.answer("❌ Недостаточно данных для построения графика активности")
 
@@ -216,11 +214,10 @@ async def cmd_rating(message: Message):
 
     if chart_path:
         # Отправляем график всем пользователям
-        with open(chart_path, "rb") as chart_file:
-            await message.answer_photo(
-                photo=chart_file,
-                caption="📊 Сравнительный график прогресса участников",
-            )
+        await message.answer_photo(
+            photo=FSInputFile(chart_path),
+            caption="📊 Сравнительный график прогресса участников",
+        )
     else:
         await message.answer("❌ Недостаточно данных для построения сравнительного графика")
 
@@ -234,10 +231,9 @@ async def cmd_activity_rating(message: Message):
 
     if chart_path:
         # Отправляем график всем пользователям
-        with open(chart_path, "rb") as chart_file:
-            await message.answer_photo(
-                photo=chart_file,
-                caption="📊 Сравнительный график активности участников (за последние 7 дней)",
-            )
+        await message.answer_photo(
+            photo=FSInputFile(chart_path),
+            caption="📊 Сравнительный график активности участников (за последние 7 дней)",
+        )
     else:
         await message.answer("❌ Недостаточно данных для построения сравнительного графика активности")
