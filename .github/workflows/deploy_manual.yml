@@ -12,7 +12,7 @@ on:
         - production
         - staging
       image_tag:
-        description: 'Docker image tag to deploy (leave empty for latest)'
+        description: 'Docker image tag to deploy (e.g., latest, main, 1_sheduler, sha-xxx)'
         required: false
         default: 'latest'
         type: string
