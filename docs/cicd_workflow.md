@@ -19,6 +19,15 @@ It performs the following actions:
 - Tags the image with multiple tags (branch, SHA, latest, semver)
 - Pushes the image to Docker Hub
 - Runs on both AMD64 and ARM64 architectures
+- Uses GitHub Actions cache for Docker layer caching to speed up builds
+
+## Caching Strategy
+
+The build process uses multiple caching techniques:
+
+- **Docker Layer Caching**: Uses GitHub Actions cache (`type=gha`) to store Docker layers between builds
+- **Efficient Dockerfile**: Dependencies are installed in separate layers to maximize cache reuse
+- **Multi-platform Support**: Caches are maintained for both AMD64 and ARM64 architectures
 
 ## Deploy Workflow
 

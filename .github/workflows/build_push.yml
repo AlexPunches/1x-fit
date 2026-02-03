@@ -1,4 +1,4 @@
-name: Build and Push Docker Image
+name: Build and Push Docker Image (Automatic)
 
 on:
   push:
@@ -39,7 +39,7 @@ jobs:
         tags: |
           type=ref,event=branch
           type=ref,event=pr
-          type=sha,prefix={{branch}}-,value={{sha}}
+          type=sha,prefix=sha-
           type=raw,value=latest,onlatest=true
           type=semver,pattern={{version}}
 
@@ -54,3 +54,4 @@ jobs:
         labels: ${{ steps.meta.outputs.labels }}
         cache-from: type=gha
         cache-to: type=gha,mode=max
+        provenance: false  # Отключаем провенанс для ускорения сборки
