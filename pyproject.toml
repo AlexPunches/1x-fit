@@ -12,58 +12,45 @@ dependencies = [
     "python-dotenv>=1.0.0",
     "pytz>=2023.3",
     "pillow>=10.0.0",
-    "pydantic-settings>=2.0.0"
+    "pydantic-settings>=2.0.0",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
-    "pytest>=7.0.0",
+    "pytest>=9.0.2",
     "mypy>=1.0.0",
-    "ruff>=0.1.0"
+    "ruff>=0.14.11",
 ]
-
-[tool.uv]
-dev-dependencies = [
-    "pytest>=7.0.0",
-    "mypy>=1.0.0",
-    "ruff>=0.1.0"
-]
-
 [tool.ruff]
-# Укажем, какие правила использовать
-select = [
-    "E",  # Ошибки pycodestyle
-    "W",  # Предупреждения pycodestyle
-    "F",  # Ошибки Pyflakes
-    "I",  # flake8-import-order
-    "C",  # flake8-comprehensions
-    "B",  # flake8-bugbear
+exclude = [
+    ".venv",
+    "tests",
 ]
-
-# Исключим некоторые правила
-ignore = [
-    "E501",  # Длина строки (будет контролироваться formatter'ом)
+fix = true
+unsafe-fixes = false
+line-length = 120
+lint.select = ["ALL"]
+lint.ignore = [
+    "D1", "D203", "D213", "FA102", "ANN101", "RUF001", "RUF002", "RUF003", "FIX002", "A003", "E712", "PGH003", "ARG002",
+    "ANN102", "S101", "TD002", "TD003", "TD004", "S501", "ANN401", "ARG001", "RUF012", "N815",
+    "E501", "E402",
 ]
-
-# Укажем файлы и директории для исключения
-extend-ignore = []
-line-length = 88
-indent-width = 4
-target-version = "py313"
 
 [tool.ruff.format]
-# Использовать те же настройки, что и Black
 quote-style = "double"
-indent-style = "space"
-skip-magic-trailing-comma = false
-line-ending = "auto"
 
-[tool.ruff.lint]
-# Выносить предупреждения в первую очередь
-fixable = ["ALL"]
-unfixable = []
-
-# Настройки для импортов
 [tool.ruff.lint.isort]
-known-first-party = ["bot"]
-known-third-party = ["aiogram", "sqlite3", "matplotlib", "dotenv", "pydantic_settings"]
+no-lines-before = ["standard-library", "local-folder"]
+known-local-folder = []
+
+[tool.ruff.lint.extend-per-file-ignores]
+"tests/*.py" = ["ANN401", "S101", "S311"]
+
+[tool.ruff.lint.flake8-type-checking]
+runtime-evaluated-decorators = ["attrs.define"]
+
+[tool.pytest.ini_options]
+minversion = "8.4"
+addopts = "-vs -q -s"
+log_cli_level = "DEBUG"
+log_file = "tests/tests.log"
