@@ -1,14 +1,13 @@
 # bot/handlers/notifications.py
 
 import asyncio
-from datetime import datetime, time
+import sqlite3
+from datetime import datetime
+
 import pytz
 from aiogram import Bot, Router
-import sqlite3
-
-from settings import settings
 from database.models import DATABASE_PATH
-
+from settings import settings
 
 # Создаем роутер для уведомлений
 router = Router()
@@ -22,7 +21,7 @@ class NotificationScheduler:
     async def start_scheduler(self):
         """Запуск планировщика уведомлений"""
         # Используем московский часовой пояс
-        tz = pytz.timezone('Europe/Moscow')
+        tz = pytz.timezone("Europe/Moscow")
         self.running = True
 
         # Переменные для отслеживания последней отправки
@@ -30,8 +29,8 @@ class NotificationScheduler:
         last_activity_notification_day = None
 
         # Разбор времени уведомлений из настроек
-        weight_hour, weight_minute = map(int, settings.weight_notification_time.split(':'))
-        activity_hour, activity_minute = map(int, settings.activity_notification_time.split(':'))
+        weight_hour, weight_minute = map(int, settings.weight_notification_time.split(":"))
+        activity_hour, activity_minute = map(int, settings.activity_notification_time.split(":"))
 
         while self.running:
             now = datetime.now(tz)
@@ -68,7 +67,7 @@ class NotificationScheduler:
             try:
                 await self.bot.send_message(
                     chat_id=user_id,
-                    text="⏰ Привет! Пожалуйста, введи свой сегодняшний вес в килограммах. Используй команду /weight или просто пришли число."
+                    text="⏰ Привет! Пожалуйста, введи свой сегодняшний вес в килограммах. Используй команду /weight или просто пришли число.",
                 )
             except Exception as e:
                 print(f"Ошибка при отправке уведомления пользователю {user_id}: {e}")
@@ -89,7 +88,7 @@ class NotificationScheduler:
             try:
                 await self.bot.send_message(
                     chat_id=user_id,
-                    text="⏰ Не забудь ввести сегодняшнюю активность! Пожалуйста, используй команду /activity, чтобы ввести данные о своей активности за сегодня."
+                    text="⏰ Не забудь ввести сегодняшнюю активность! Пожалуйста, используй команду /activity, чтобы ввести данные о своей активности за сегодня.",
                 )
             except Exception as e:
                 print(f"Ошибка при отправке уведомления пользователю {user_id}: {e}")

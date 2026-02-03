@@ -1,11 +1,11 @@
 # bot/handlers/daily_polls.py
 
-from aiogram import Router, F
-from aiogram.types import Message, ReplyKeyboardMarkup, KeyboardButton
-from aiogram.filters import Command
-from datetime import datetime
 import sqlite3
+from datetime import datetime
 
+from aiogram import F, Router
+from aiogram.filters import Command
+from aiogram.types import KeyboardButton, Message, ReplyKeyboardMarkup
 from database.models import DATABASE_PATH
 from utils.calculations import calculate_final_score
 
@@ -34,7 +34,7 @@ async def cmd_weight(message: Message):
     await message.answer("Пожалуйста, введи свой текущий вес в килограммах:")
 
 
-@router.message(F.text.func(lambda x: x.replace('.', '', 1).isdigit()))
+@router.message(F.text.func(lambda x: x.replace(".", "", 1).isdigit()))
 async def process_weight_input(message: Message):
     """Обработка ввода веса"""
     try:
@@ -53,7 +53,7 @@ async def process_weight_input(message: Message):
         cursor.execute("""
             INSERT INTO weight_records (user_id, weight, record_date)
             VALUES (?, ?, ?)
-        """, (user_id, weight, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+        """, (user_id, weight, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
 
         # Получаем данные пользователя для расчета прогресса
         cursor.execute("""
@@ -74,7 +74,7 @@ async def process_weight_input(message: Message):
             cursor.execute("""
                 INSERT INTO progress (user_id, progress_points, calculation_date)
                 VALUES (?, ?, ?)
-            """, (user_id, progress_score, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+            """, (user_id, progress_score, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
 
         conn.commit()
         conn.close()
@@ -147,8 +147,9 @@ async def cmd_activity(message: Message):
 
 
 # Состояния для FSM
-from aiogram.fsm.state import State, StatesGroup
 from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
+
 
 class ActivityStates(StatesGroup):
     waiting_for_activity_type = State()
@@ -195,21 +196,21 @@ async def process_activity_value(message: Message, state: FSMContext):
 
         # Получаем сохраненные данные
         data = await state.get_data()
-        activity_type_id = data['activity_type_id']
-        activity_name = data['activity_name']
-        unit = data['unit']
+        activity_type_id = data["activity_type_id"]
+        activity_name = data["activity_name"]
+        unit = data["unit"]
 
         # Проверяем диапазон значений в зависимости от типа активности
-        if activity_name == 'walking' and (value < 0 or value > 50000):
+        if activity_name == "walking" and (value < 0 or value > 50000):
             await message.answer("Количество шагов должно быть от 0 до 50000. Введи снова:")
             return
-        elif activity_name == 'running' and (value < 0 or value > 300):  # до 5 часов
+        if activity_name == "running" and (value < 0 or value > 300):  # до 5 часов
             await message.answer("Время бега должно быть от 0 до 300 минут. Введи снова:")
             return
-        elif activity_name == 'cycling' and (value < 0 or value > 200):  # до 200 км
+        if activity_name == "cycling" and (value < 0 or value > 200):  # до 200 км
             await message.answer("Расстояние на велосипеде должно быть от 0 до 200 км. Введи снова:")
             return
-        elif activity_name == 'cardio' and (value < 0 or value > 2000):  # до 2000 ккал
+        if activity_name == "cardio" and (value < 0 or value > 2000):  # до 2000 ккал
             await message.answer("Количество калорий должно быть от 0 до 2000. Введи снова:")
             return
 
@@ -228,7 +229,7 @@ async def process_activity_value(message: Message, state: FSMContext):
         cursor.execute("""
             INSERT INTO activity_records (user_id, activity_type_id, value, calories, record_date)
             VALUES (?, ?, ?, ?, ?)
-        """, (user_id, activity_type_id, value, calories, datetime.now().strftime('%Y-%m-%d %H:%M:%S')))
+        """, (user_id, activity_type_id, value, calories, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
 
         conn.commit()
         conn.close()
@@ -256,7 +257,7 @@ async def quick_activity_selection(message: Message, state: FSMContext):
         "Ходьба (шаги)": "walking",
         "Бег (время в минутах)": "running",
         "Велосипед (расстояние в км)": "cycling",
-        "Кардио (калории)": "cardio"
+        "Кардио (калории)": "cardio",
     }
 
     if activity_text in activity_mapping:

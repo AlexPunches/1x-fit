@@ -8,11 +8,10 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 from aiohttp import web
-
-from settings import settings
-from handlers import setup_handlers
 from database.models import init_db
+from handlers import setup_handlers
 from handlers.notifications import scheduler
+from settings import settings
 
 
 async def on_startup(app: web.Application):
@@ -55,7 +54,7 @@ async def main():
     # Регистрация обработчика запросов
     webhook_requests_handler = SimpleRequestHandler(
         dispatcher=dp,
-        bot=bot
+        bot=bot,
     )
 
     # Регистрация маршрута для вебхука
@@ -79,16 +78,15 @@ async def main():
     await site.start()
 
     logging.info(f"Бот запущен на {host}:{port}")
-    logging.info("Кэширование Docker-слоев ускоряет повторные сборки")
 
     # Бесконечный цикл
     try:
-        await asyncio.sleep(float('inf'))
+        await asyncio.sleep(float("inf"))
     except (KeyboardInterrupt, SystemExit):
         logging.warning("Shutting down...")
     finally:
         await runner.cleanup()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     asyncio.run(main())

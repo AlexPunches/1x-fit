@@ -5,7 +5,7 @@ from aiogram import Router
 
 def setup_handlers(dp):
     """Функция для регистрации всех обработчиков"""
-    from . import registration, daily_polls, progress, notifications
+    from . import daily_polls, notifications, progress, registration
 
     # Создание роутеров
     registration_router = registration.router
