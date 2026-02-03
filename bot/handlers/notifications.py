@@ -1,14 +1,12 @@
 # bot/handlers/notifications.py
 
-import asyncio
-from datetime import datetime, time
-import pytz
-from aiogram import Bot, Router
 import sqlite3
 
-from config import BOT_TOKEN
+import pytz
+from aiogram import Bot, Router
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from database.models import DATABASE_PATH
-
+from settings import settings
 
 # Создаем роутер для уведомлений
 router = Router()
@@ -16,25 +14,39 @@ router = Router()
 
 class NotificationScheduler:
     def __init__(self):
-        self.bot = Bot(token=BOT_TOKEN)
-        self.running = False
+        self.bot = Bot(token=settings.bot_token)
+        self.scheduler = AsyncIOScheduler()
 
-    async def start_scheduler(self):
+    def start_scheduler(self):
         """Запуск планировщика уведомлений"""
-        self.running = True
-        while self.running:
-            now = datetime.now()
+        # Используем московский часовой пояс
+        tz = pytz.timezone("Europe/Moscow")
 
-            # Проверяем, нужно ли отправить уведомления о весе (в 10:00)
-            if now.hour == 10 and now.minute == 0 and now.second < 10:
-                await self.send_weight_reminders()
+        # Разбор времени уведомлений из настроек
+        weight_hour, weight_minute = map(int, settings.weight_notification_time.split(":"))
+        activity_hour, activity_minute = map(int, settings.activity_notification_time.split(":"))
 
-            # Проверяем, нужно ли отправить уведомления о шагах (в 22:00)
-            if now.hour == 22 and now.minute == 0 and now.second < 10:
-                await self.send_steps_reminders()
+        # Добавляем задачи в планировщик
+        self.scheduler.add_job(
+            self.send_weight_reminders,
+            'cron',
+            hour=weight_hour,
+            minute=weight_minute,
+            timezone=tz,
+            id='weight_reminder'
+        )
 
-            # Проверяем каждую минуту
-            await asyncio.sleep(60)
+        self.scheduler.add_job(
+            self.send_activity_reminders,
+            'cron',
+            hour=activity_hour,
+            minute=activity_minute,
+            timezone=tz,
+            id='activity_reminder'
+        )
+
+        # Запускаем планировщик
+        self.scheduler.start()
 
     async def send_weight_reminders(self):
         """Отправка напоминаний о вводе веса"""
@@ -50,15 +62,15 @@ class NotificationScheduler:
             try:
                 await self.bot.send_message(
                     chat_id=user_id,
-                    text="⏰ Привет! Пожалуйста, введи свой сегодняшний вес в килограммах. Используй команду /weight или просто пришли число."
+                    text="⏰ Привет! Пожалуйста, введи свой сегодняшний вес в килограммах. Используй команду /weight или просто пришли число.",
                 )
             except Exception as e:
                 print(f"Ошибка при отправке уведомления пользователю {user_id}: {e}")
 
         conn.close()
 
-    async def send_steps_reminders(self):
-        """Отправка напоминаний о вводе количества шагов"""
+    async def send_activity_reminders(self):
+        """Отправка напоминаний о вводе активности"""
         conn = sqlite3.connect(DATABASE_PATH)
         cursor = conn.cursor()
 
@@ -71,7 +83,7 @@ class NotificationScheduler:
             try:
                 await self.bot.send_message(
                     chat_id=user_id,
-                    text="⏰ Не забудь сегодняшние шаги! Пожалуйста, введи количество шагов за сегодня. Используй команду /steps или просто пришли число."
+                    text="⏰ Не забудь ввести сегодняшнюю активность! Пожалуйста, используй команду /activity, чтобы ввести данные о своей активности за сегодня.",
                 )
             except Exception as e:
                 print(f"Ошибка при отправке уведомления пользователю {user_id}: {e}")
@@ -80,7 +92,8 @@ class NotificationScheduler:
 
     def stop_scheduler(self):
         """Остановка планировщика уведомлений"""
-        self.running = False
+        if self.scheduler.running:
+            self.scheduler.shutdown()
 
 
 # Глобальный экземпляр планировщика

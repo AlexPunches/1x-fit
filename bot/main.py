@@ -2,18 +2,17 @@
 
 import asyncio
 import logging
-import os
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 from aiohttp import web
-
-from config import BOT_TOKEN
-from handlers import setup_handlers
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from database.models import init_db
+from handlers import setup_handlers
 from handlers.notifications import scheduler
+from settings import settings
 
 
 async def on_startup(app: web.Application):
@@ -21,7 +20,7 @@ async def on_startup(app: web.Application):
     init_db()
 
     # Запуск планировщика уведомлений
-    asyncio.create_task(scheduler.start_scheduler())
+    scheduler.start_scheduler()
 
 
 async def on_cleanup(app: web.Application):
@@ -34,7 +33,7 @@ async def main():
     logging.basicConfig(level=logging.INFO)
 
     # Инициализация бота
-    bot = Bot(token=BOT_TOKEN, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+    bot = Bot(token=settings.bot_token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 
     # Инициализация диспетчера
     dp = Dispatcher()
@@ -42,8 +41,8 @@ async def main():
     # Настройка обработчиков
     setup_handlers(dp)
 
-    # Получение webhook URL из переменной окружения или использование стандартного
-    webhook_url = os.getenv('WEBHOOK_URL')
+    # Получение webhook URL из настроек
+    webhook_url = settings.webhook_url
 
     # Установка webhook
     # Если используется самоподписной сертификат, нужно передать его в Telegram
@@ -56,7 +55,7 @@ async def main():
     # Регистрация обработчика запросов
     webhook_requests_handler = SimpleRequestHandler(
         dispatcher=dp,
-        bot=bot
+        bot=bot,
     )
 
     # Регистрация маршрута для вебхука
@@ -69,9 +68,9 @@ async def main():
     app.on_startup.append(on_startup)
     app.on_cleanup.append(on_cleanup)
 
-    # Получение хоста и порта из переменных окружения
-    host = os.getenv('HOST', '0.0.0.0')
-    port = int(os.getenv('PORT', 8000))
+    # Получение хоста и порта из настроек
+    host = settings.host
+    port = settings.port
 
     # Запуск веб-сервера
     runner = web.AppRunner(app)
@@ -80,16 +79,17 @@ async def main():
     await site.start()
 
     logging.info(f"Бот запущен на {host}:{port}")
-    logging.info("Кэширование Docker-слоев ускоряет повторные сборки")
 
     # Бесконечный цикл
     try:
-        await asyncio.sleep(float('inf'))
+        await asyncio.sleep(float("inf"))
     except (KeyboardInterrupt, SystemExit):
         logging.warning("Shutting down...")
     finally:
+        # Остановка планировщика при завершении работы
+        scheduler.stop_scheduler()
         await runner.cleanup()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     asyncio.run(main())

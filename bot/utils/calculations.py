@@ -1,6 +1,5 @@
 def calculate_bmi(weight, height):
-    """
-    Рассчитывает ИМТ (индекс массы тела)
+    """Рассчитывает ИМТ (индекс массы тела)
     :param weight: вес в кг
     :param height: рост в см
     :return: значение ИМТ
@@ -10,26 +9,24 @@ def calculate_bmi(weight, height):
 
 
 def get_weight_factor(initial_bmi):
-    """
-    Возвращает коэффициент, зависящий от начального ИМТ
+    """Возвращает коэффициент, зависящий от начального ИМТ
     :param initial_bmi: начальный ИМТ
     :return: коэффициент для расчета прогресса
     """
     if initial_bmi < 25:  # нормальный вес
         return 1.0
-    elif initial_bmi < 30:  # избыточный вес
+    if initial_bmi < 30:  # избыточный вес
         return 1.2
-    elif initial_bmi < 35:  # ожирение 1 степени
+    if initial_bmi < 35:  # ожирение 1 степени
         return 1.5
-    elif initial_bmi < 40:  # ожирение 2 степени
+    if initial_bmi < 40:  # ожирение 2 степени
         return 1.8
-    else:  # ожирение 3 степени
-        return 2.0
+    # ожирение 3 степени
+    return 2.0
 
 
 def calculate_progress_points(start_weight, current_weight, height, target_weight):
-    """
-    Рассчитывает прогресс в условных пунктах
+    """Рассчитывает прогресс в условных пунктах
     :param start_weight: начальный вес
     :param current_weight: текущий вес
     :param height: рост
@@ -38,35 +35,34 @@ def calculate_progress_points(start_weight, current_weight, height, target_weigh
     """
     initial_bmi = calculate_bmi(start_weight, height)
     current_bmi = calculate_bmi(current_weight, height)
-    
+
     bmi_improvement = initial_bmi - current_bmi
-    
+
     # Применяем коэффициент, зависящий от начального ИМТ
     weight_factor = get_weight_factor(initial_bmi)
     progress_score = bmi_improvement * weight_factor
-    
+
     # Рассчитываем адаптивный фактор для шкалы прогресса
     current_bmi_diff = abs(current_bmi - calculate_bmi(target_weight, height))
     initial_bmi_diff = abs(initial_bmi - calculate_bmi(target_weight, height))
-    
+
     adaptive_factor = max(0.5, 1.0 - (current_bmi_diff / initial_bmi_diff if initial_bmi_diff != 0 else 1.0))
-    
+
     # Определяем базовые очки за кг
     base_points_for_kg = 1.0
-    
+
     # Рассчитываем очки за 1 кг с учетом адаптивного фактора
     points_for_kg = base_points_for_kg * adaptive_factor
-    
+
     # Рассчитываем итоговый прогресс
     weight_loss = start_weight - current_weight
     progress_points = weight_loss * points_for_kg
-    
+
     return progress_points
 
 
 def calculate_percentage_loss(start_weight, current_weight):
-    """
-    Рассчитывает процент снижения веса
+    """Рассчитывает процент снижения веса
     :param start_weight: начальный вес
     :param current_weight: текущий вес
     :return: процент снижения
@@ -75,8 +71,7 @@ def calculate_percentage_loss(start_weight, current_weight):
 
 
 def calculate_adjusted_percentage(start_weight, current_weight, height):
-    """
-    Рассчитывает процент снижения веса с коррекцией на ИМТ
+    """Рассчитывает процент снижения веса с коррекцией на ИМТ
     :param start_weight: начальный вес
     :param current_weight: текущий вес
     :param height: рост
@@ -84,7 +79,7 @@ def calculate_adjusted_percentage(start_weight, current_weight, height):
     """
     percentage_loss = calculate_percentage_loss(start_weight, current_weight)
     initial_bmi = calculate_bmi(start_weight, height)
-    
+
     # Определяем коэффициент коррекции
     if initial_bmi < 25:
         adjustment_factor = 1.0
@@ -96,23 +91,64 @@ def calculate_adjusted_percentage(start_weight, current_weight, height):
         adjustment_factor = 1.6
     else:
         adjustment_factor = 2.0
-    
+
     return percentage_loss * adjustment_factor
 
 
-def calculate_final_score(start_weight, current_weight, height, target_weight):
+def calculate_calories_from_activities(user_id, db_path, days=1):
+    """Рассчитывает сумму сожженных калорий за последние N дней
+    :param user_id: ID пользователя
+    :param db_path: путь к базе данных
+    :param days: количество дней для учета (по умолчанию 1)
+    :return: сумма сожженных калорий
     """
-    Рассчитывает итоговый прогресс с использованием комбинированной формулы
+    import sqlite3
+    from datetime import datetime, timedelta
+
+    conn = sqlite3.connect(db_path)
+    cursor = conn.cursor()
+
+    # Рассчитываем дату начала периода
+    start_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
+
+    # Получаем сумму сожженных калорий за указанный период
+    cursor.execute("""
+        SELECT SUM(calories)
+        FROM activity_records
+        WHERE user_id = ? AND record_date >= ? AND calories IS NOT NULL
+    """, (user_id, start_date))
+
+    result = cursor.fetchone()[0]
+    conn.close()
+
+    return result if result is not None else 0
+
+
+def calculate_final_score(start_weight, current_weight, height, target_weight, user_id=None, db_path=None):
+    """Рассчитывает итоговый прогресс с использованием комбинированной формулы
     :param start_weight: начальный вес
     :param current_weight: текущий вес
     :param height: рост
     :param target_weight: целевой вес
+    :param user_id: ID пользователя (для учета активностей)
+    :param db_path: путь к базе данных
     :return: итоговый прогресс
     """
     bmi_based_score = calculate_progress_points(start_weight, current_weight, height, target_weight)
     percentage_based_score = calculate_adjusted_percentage(start_weight, current_weight, height)
-    
+
     # Комбинируем оба подхода
-    final_score = (bmi_based_score * 0.6) + (percentage_based_score * 0.4)
-    
+    base_score = (bmi_based_score * 0.6) + (percentage_based_score * 0.4)
+
+    # Если указаны user_id и db_path, добавляем бонус за активности
+    activity_bonus = 0
+    if user_id is not None and db_path is not None:
+        # Получаем сожженные калории за последний день
+        daily_calories = calculate_calories_from_activities(user_id, db_path, days=1)
+
+        # Добавляем бонус за активности (например, 0.1 балла за каждые 100 калорий)
+        activity_bonus = daily_calories * 0.001
+
+    final_score = base_score + activity_bonus
+
     return final_score

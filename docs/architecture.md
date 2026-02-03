@@ -1,102 +1,98 @@
-# Архитектурное решение для Telegram-бота соревнования по снижению веса
+# Project Architecture
 
-## Общее описание
+## Overview
 
-Telegram-бот для соревнования по снижению веса, где участники регистрируются и ежедневно отслеживают свой прогресс. Бот собирает данные о весе и количестве шагов, сохраняет их в базу данных и визуализирует прогресс участников.
+The 1x-fit bot is a Telegram bot for fitness tracking and weight loss competition. It uses a modular architecture with clear separation of concerns.
 
-## Компоненты системы
+## Directory Structure
 
-### 1. Telegram-бот (aiogram)
-- Обработка команд и сообщений пользователей
-- Регистрация новых участников
-- Ежедневные опросы (вес в 10:00, шаги в 22:00)
-- Отображение прогресса участников
+```
+bot/
+├── main.py                 # Entry point and main application setup
+├── settings.py             # Application settings and configuration
+├── requirements.txt        # Python dependencies
+├── Dockerfile             # Container configuration
+├── database/              # Database models and initialization
+│   └── models.py
+├── handlers/              # Telegram bot command handlers
+│   ├── __init__.py
+│   ├── daily_polls.py     # Weight and activity input handlers
+│   ├── notifications.py   # Notification scheduling and sending
+│   ├── progress.py        # Progress tracking and visualization commands
+│   └── registration.py    # User registration flow
+└── utils/                 # Utility functions
+    ├── calculations.py    # Progress calculation algorithms
+    └── visualization.py   # Chart generation functions
+```
 
-### 2. Система уведомлений
-- Планировщик задач (schedule) для отправки ежедневных опросов
-- Напоминания об отсутствии ответов
+## Core Components
 
-### 3. База данных (SQLite)
-- Хранение информации о пользователях
-- Хранение исторических данных о весе и шагах
-- Таблицы: users, weight_records, step_records
+### 1. Main Application (main.py)
 
-### 4. Система расчета прогресса
-- Алгоритм пересчета прогресса с учетом ИМТ и индивидуальных особенностей
-- Формула справедливого сравнения прогресса участников
+- Initializes the bot with proper settings
+- Sets up the dispatcher and registers handlers
+- Configures webhook or polling mode
+- Starts the notification scheduler
+- Handles application lifecycle events
 
-### 5. Система визуализации
-- Генерация графиков прогресса участников
-- Отображение текущего положения участников в соревновании
+### 2. Settings (settings.py)
 
-## Структура базы данных
+- Centralized configuration using Pydantic Settings
+- Environment variable loading
+- Configuration for bot token, database path, notification times, etc.
 
-### Таблица users
-- id (INTEGER PRIMARY KEY) - ID пользователя в Telegram
-- username (TEXT) - Ник участника
-- gender (TEXT) - Пол (M/F)
-- age (INTEGER) - Возраст
-- height (REAL) - Рост в см
-- start_weight (REAL) - Стартовый вес
-- target_weight (REAL) - Целевой вес
-- registration_date (TEXT) - Дата регистрации
+### 3. Database Layer (database/models.py)
 
-### Таблица weight_records
-- id (INTEGER PRIMARY KEY)
-- user_id (INTEGER) - Ссылка на пользователя
-- weight (REAL) - Вес
-- record_date (TEXT) - Дата записи
-- FOREIGN KEY(user_id) REFERENCES users(id)
+- SQLite database schema definition
+- Table creation and initialization
+- Default activity types setup
+- Index definitions for performance
 
-### Таблица step_records
-- id (INTEGER PRIMARY KEY)
-- user_id (INTEGER) - Ссылка на пользователя
-- steps_count (INTEGER) - Количество шагов
-- record_date (TEXT) - Дата записи
-- FOREIGN KEY(user_id) REFERENCES users(id)
+### 4. Handlers
 
-## Система уведомлений и опросов
+#### Registration Handler
+- Manages user registration flow using FSM
+- Collects user profile information (name, gender, age, height, weights)
 
-### Расписание опросов
-- Ежедневно в 10:00 - запрос текущего веса
-- Ежедневно в 22:00 - запрос количества шагов
-- Возможность добавления дополнительных опросов через конфигурацию
+#### Daily Polls Handler
+- Handles weight input commands
+- Processes activity input with keyboard selections
+- Manages activity type selection FSM
 
-### Механизм опросов
-- Отправка сообщений с клавиатурой для быстрого ответа
-- Обработка ответов и сохранение в базу данных
-- Напоминания о пропущенных ответах
+#### Progress Handler
+- Displays user progress information
+- Generates individual and comparison charts
+- Shows activity statistics
 
-## Формула расчета прогресса
+#### Notifications Handler
+- Manages scheduled notifications using APScheduler
+- Sends daily reminders for weight and activity input
 
-Для справедливого сравнения прогресса участников будем использовать модифицированную систему, учитывающую:
+### 5. Utilities
 
-1. Индекс массы тела (ИМТ) - отношение веса к росту в квадрате
-2. Процент снижения от начального веса
-3. Адаптивную шкалу прогресса, где каждая единица требует разного количества килограммов в зависимости от текущего состояния участника
+#### Calculations
+- BMI calculation algorithms
+- Progress scoring formulas
+- Calorie calculation functions
 
-Формула будет учитывать, что при более высоком начальном весе первые килограммы сбрасываются легче, и по мере приближения к целевому весу прогресс замедляется.
+#### Visualization
+- Chart generation for individual progress
+- Comparison charts for all participants
+- Activity visualization
 
-## Визуализация прогресса
+## Deployment Architecture
 
-### График прогресса
-- Для каждого участника отдельная точка на графике
-- Ось X - прогресс в условных пунктах (от 0 до достижения цели)
-- Отсутствие временной шкалы - позиция участника отражает текущий прогресс, а не время
-- Каждый участник имеет индивидуальную шкалу прогресса, зависящую от его параметров
-- Точка участника может двигаться как вправо (снижение веса), так и влево (увеличение веса)
-- Метки над точками показывают количество сброшенных/набранных кг
+The bot is deployed as a Docker container with:
 
-### Интерактивность
-- Возможность выбора отображения участников
-- Отображение детальной информации при наведении на точки
-- Цветовое кодирование для лучшего восприятия (зеленый - прогресс, красный - регресс)
+- Persistent volumes for database and chart storage
+- Environment-based configuration
+- Webhook-based communication with Telegram
+- Scheduled notifications using APScheduler
 
-## Технические требования
+## External Dependencies
 
-- Python 3.13
-- aiogram 3.x для работы с Telegram Bot API
-- SQLite для хранения данных
-- matplotlib/seaborn для визуализации графиков
-- schedule для планирования задач
-- python-dotenv для управления конфигурацией
+- aiogram: Telegram Bot API framework
+- APScheduler: Advanced Python Scheduler for notifications
+- SQLite: Local database storage
+- Matplotlib/Seaborn: Chart generation
+- Pydantic: Settings and data validation
