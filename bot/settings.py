@@ -9,8 +9,8 @@ class Settings(BaseSettings):
     admin_id: str | None = Field(None, alias="ADMIN_ID", description="Admin user ID for administrative functions")
 
     # Notification times (in HH:MM format)
-    weight_notification_time: str = Field("10:00", alias="WEIGHT_NOTIFICATION_TIME", description="Time for weight notifications in HH:MM format")
-    activity_notification_time: str = Field("22:00", alias="ACTIVITY_NOTIFICATION_TIME", description="Time for activity notifications in HH:MM format")
+    weight_notification_time: str = Field("22:40", alias="WEIGHT_NOTIFICATION_TIME", description="Time for weight notifications in HH:MM format")
+    activity_notification_time: str = Field("22:42", alias="ACTIVITY_NOTIFICATION_TIME", description="Time for activity notifications in HH:MM format")
 
     # Database configuration
     database_path: str = Field("../data/database.db", alias="DATABASE_PATH", description="Path to SQLite database file")

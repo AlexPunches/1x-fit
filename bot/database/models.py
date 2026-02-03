@@ -4,10 +4,12 @@ import sqlite3
 
 from settings import settings
 
+DATABASE_PATH = settings.database_path
+
 
 def init_db():
     """Инициализация базы данных"""
-    conn = sqlite3.connect(settings.database_path)
+    conn = sqlite3.connect(DATABASE_PATH)
     cursor = conn.cursor()
 
     # Создание таблицы пользователей

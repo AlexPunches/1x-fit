@@ -1,11 +1,10 @@
 # bot/handlers/notifications.py
 
-import asyncio
 import sqlite3
-from datetime import datetime
 
 import pytz
 from aiogram import Bot, Router
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from database.models import DATABASE_PATH
 from settings import settings
 
@@ -16,42 +15,38 @@ router = Router()
 class NotificationScheduler:
     def __init__(self):
         self.bot = Bot(token=settings.bot_token)
-        self.running = False
+        self.scheduler = AsyncIOScheduler()
 
-    async def start_scheduler(self):
+    def start_scheduler(self):
         """Запуск планировщика уведомлений"""
         # Используем московский часовой пояс
         tz = pytz.timezone("Europe/Moscow")
-        self.running = True
-
-        # Переменные для отслеживания последней отправки
-        last_weight_notification_day = None
-        last_activity_notification_day = None
 
         # Разбор времени уведомлений из настроек
         weight_hour, weight_minute = map(int, settings.weight_notification_time.split(":"))
         activity_hour, activity_minute = map(int, settings.activity_notification_time.split(":"))
 
-        while self.running:
-            now = datetime.now(tz)
-            current_day = now.date()
+        # Добавляем задачи в планировщик
+        self.scheduler.add_job(
+            self.send_weight_reminders,
+            'cron',
+            hour=weight_hour,
+            minute=weight_minute,
+            timezone=tz,
+            id='weight_reminder'
+        )
 
-            # Проверяем, нужно ли отправить уведомления о весе (в заданное время по Московскому времени)
-            # Отправляем только один раз в день в заданное время
-            if (now.hour == weight_hour and now.minute == weight_minute and
-                last_weight_notification_day != current_day):
-                await self.send_weight_reminders()
-                last_weight_notification_day = current_day
+        self.scheduler.add_job(
+            self.send_activity_reminders,
+            'cron',
+            hour=activity_hour,
+            minute=activity_minute,
+            timezone=tz,
+            id='activity_reminder'
+        )
 
-            # Проверяем, нужно ли отправить уведомления об активности (в заданное время по Московскому времени)
-            # Отправляем только один раз в день в заданное время
-            if (now.hour == activity_hour and now.minute == activity_minute and
-                last_activity_notification_day != current_day):
-                await self.send_activity_reminders()
-                last_activity_notification_day = current_day
-
-            # Проверяем каждые 30 секунд
-            await asyncio.sleep(30)
+        # Запускаем планировщик
+        self.scheduler.start()
 
     async def send_weight_reminders(self):
         """Отправка напоминаний о вводе веса"""
@@ -97,7 +92,8 @@ class NotificationScheduler:
 
     def stop_scheduler(self):
         """Остановка планировщика уведомлений"""
-        self.running = False
+        if self.scheduler.running:
+            self.scheduler.shutdown()
 
 
 # Глобальный экземпляр планировщика

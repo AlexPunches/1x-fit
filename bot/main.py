@@ -8,6 +8,7 @@ from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 from aiohttp import web
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from database.models import init_db
 from handlers import setup_handlers
 from handlers.notifications import scheduler
@@ -19,7 +20,7 @@ async def on_startup(app: web.Application):
     init_db()
 
     # Запуск планировщика уведомлений
-    asyncio.create_task(scheduler.start_scheduler())
+    scheduler.start_scheduler()
 
 
 async def on_cleanup(app: web.Application):
@@ -85,6 +86,8 @@ async def main():
     except (KeyboardInterrupt, SystemExit):
         logging.warning("Shutting down...")
     finally:
+        # Остановка планировщика при завершении работы
+        scheduler.stop_scheduler()
         await runner.cleanup()
 
 
