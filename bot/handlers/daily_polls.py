@@ -5,6 +5,8 @@ from datetime import datetime
 
 from aiogram import F, Router
 from aiogram.filters import Command
+from aiogram.fsm.context import FSMContext
+from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import KeyboardButton, Message, ReplyKeyboardMarkup
 from database.models import DATABASE_PATH
 from utils.calculations import calculate_final_score
@@ -34,9 +36,15 @@ async def cmd_weight(message: Message):
     await message.answer("Пожалуйста, введи свой текущий вес в килограммах:")
 
 
-@router.message(F.text.func(lambda x: x.replace(".", "", 1).isdigit()), ~F.state.startswith("ActivityStates:"))
-async def process_weight_input(message: Message):
+@router.message(F.text.func(lambda x: x.replace(".", "", 1).isdigit()))
+async def process_weight_input(message: Message, state: FSMContext):
     """Обработка ввода веса"""
+    # Проверяем, не находится ли пользователь в состоянии ввода активности
+    current_state = await state.get_state()
+    if current_state and "ActivityStates:" in current_state:
+        # Если пользователь в состоянии ввода активности, не обрабатываем как вес
+        return
+
     try:
         weight = float(message.text)
 
