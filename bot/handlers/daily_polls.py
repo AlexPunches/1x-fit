@@ -137,11 +137,18 @@ async def cmd_activity(message: Message):
         return
 
     # Создаем клавиатуру с типами активности
-    keyboard = ReplyKeyboardMarkup(resize_keyboard=True)
+    keyboard = []
+    row = []
     for activity_id, name, description in activities:
-        keyboard.add(KeyboardButton(text=description))
+        row.append(KeyboardButton(text=description))
+        if len(row) == 2:  # Добавляем по 2 кнопки в ряд для лучшего отображения
+            keyboard.append(row)
+            row = []
+    if row:  # Добавляем оставшиеся кнопки
+        keyboard.append(row)
 
-    await message.answer("Выбери тип активности:", reply_markup=keyboard)
+    reply_markup = ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True)
+    await message.answer("Выбери тип активности:", reply_markup=reply_markup)
 
     conn.close()
 
