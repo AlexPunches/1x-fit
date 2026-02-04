@@ -30,7 +30,7 @@ async def on_cleanup(app: web.Application):
 
 async def main():
     # Настройка логирования
-    logging.basicConfig(level=logging.INFO)
+    logging.basicConfig(level=getattr(logging, settings.log_min_level.upper(), logging.INFO))
 
     # Инициализация бота
     bot = Bot(token=settings.bot_token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
