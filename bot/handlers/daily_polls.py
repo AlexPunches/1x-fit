@@ -34,7 +34,7 @@ async def cmd_weight(message: Message):
     await message.answer("Пожалуйста, введи свой текущий вес в килограммах:")
 
 
-@router.message(F.text.func(lambda x: x.replace(".", "", 1).isdigit()))
+@router.message(F.text.func(lambda x: x.replace(".", "", 1).isdigit()), ~F.state.startswith("ActivityStates:"))
 async def process_weight_input(message: Message):
     """Обработка ввода веса"""
     try:
