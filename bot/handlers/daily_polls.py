@@ -1,7 +1,6 @@
 # bot/handlers/daily_polls.py
 
 import logging
-import os
 import sqlite3
 from datetime import datetime
 
@@ -11,7 +10,6 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import KeyboardButton, Message, ReplyKeyboardMarkup
 from database.models import DATABASE_PATH
-from settings import settings
 from utils.calculations import calculate_final_score
 
 logger = logging.getLogger(__name__)
@@ -120,7 +118,6 @@ async def process_weight_input(message: Message):
     except ValueError:
         # Если текст не является числом, не обрабатываем как вес
         logger.debug("Сообщение '%s' не является числом, пропускаем обработку", message.text)
-        pass
 
 
 @router.message(Command("activity"))
@@ -167,8 +164,6 @@ async def cmd_activity(message: Message):
 
 
 # Состояния для FSM
-from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import State, StatesGroup
 
 
 class ActivityStates(StatesGroup):

@@ -25,6 +25,9 @@ class Settings(BaseSettings):
     host: str = Field("0.0.0.0", alias="HOST", description="Host for the web server")
     port: int = Field(8000, alias="PORT", description="Port for the web server")
 
+    # Application environment
+    app_env: str = Field("production", alias="APP_ENV", description="Application environment (development or production)")
+
     # Logging configuration
     log_min_level: str = Field("INFO", alias="LOG_MIN_LEVEL", description="Minimum logging level (DEBUG, INFO, WARNING, ERROR)")
 

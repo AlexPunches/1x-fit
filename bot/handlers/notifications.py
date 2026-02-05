@@ -29,20 +29,20 @@ class NotificationScheduler:
         # Добавляем задачи в планировщик
         self.scheduler.add_job(
             self.send_weight_reminders,
-            'cron',
+            "cron",
             hour=weight_hour,
             minute=weight_minute,
             timezone=tz,
-            id='weight_reminder'
+            id="weight_reminder",
         )
 
         self.scheduler.add_job(
             self.send_activity_reminders,
-            'cron',
+            "cron",
             hour=activity_hour,
             minute=activity_minute,
             timezone=tz,
-            id='activity_reminder'
+            id="activity_reminder",
         )
 
         # Запускаем планировщик
