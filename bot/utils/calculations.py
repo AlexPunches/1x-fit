@@ -20,7 +20,7 @@ def get_weight_factor(initial_bmi: float) -> float:
     OVERWEIGHT_BMI_THRESHOLD = 30
     OBESITY1_BMI_THRESHOLD = 35
     OBESITY2_BMI_THRESHOLD = 40
-    
+
     if initial_bmi < NORMAL_BMI_THRESHOLD:  # нормальный вес
         return 1.0
     if initial_bmi < OVERWEIGHT_BMI_THRESHOLD:  # избыточный вес
@@ -49,7 +49,7 @@ def calculate_progress_points(start_weight: float, current_weight: float, height
 
     # Применяем коэффициент, зависящий от начального ИМТ
     weight_factor = get_weight_factor(initial_bmi)
-    progress_score = bmi_improvement * weight_factor
+    # progress_score = bmi_improvement * weight_factor  # Не используется
 
     # Рассчитываем адаптивный фактор для шкалы прогресса
     current_bmi_diff = abs(current_bmi - calculate_bmi(target_weight, height))
@@ -65,9 +65,7 @@ def calculate_progress_points(start_weight: float, current_weight: float, height
 
     # Рассчитываем итоговый прогресс
     weight_loss = start_weight - current_weight
-    progress_points = weight_loss * points_for_kg
-
-    return progress_points
+    return weight_loss * points_for_kg
 
 
 def calculate_percentage_loss(start_weight: float, current_weight: float) -> float:
@@ -96,7 +94,7 @@ def calculate_adjusted_percentage(start_weight: float, current_weight: float, he
     OVERWEIGHT_BMI_THRESHOLD = 30
     OBESITY1_BMI_THRESHOLD = 35
     OBESITY2_BMI_THRESHOLD = 40
-    
+
     if initial_bmi < NORMAL_BMI_THRESHOLD:
         adjustment_factor = 1.0
     elif initial_bmi < OVERWEIGHT_BMI_THRESHOLD:
@@ -111,8 +109,9 @@ def calculate_adjusted_percentage(start_weight: float, current_weight: float, he
     return percentage_loss * adjustment_factor
 
 
-def calculate_calories_from_activities(user_id, db_path, days=1):
-    """Рассчитывает сумму сожженных калорий за последние N дней
+def calculate_calories_from_activities(user_id: int, db_path: str, days: int = 1) -> float:
+    """Рассчитывает сумму сожженных калорий за последние N дней.
+    
     :param user_id: ID пользователя
     :param db_path: путь к базе данных
     :param days: количество дней для учета (по умолчанию 1)
@@ -140,8 +139,9 @@ def calculate_calories_from_activities(user_id, db_path, days=1):
     return result if result is not None else 0
 
 
-def calculate_final_score(start_weight, current_weight, height, target_weight, user_id=None, db_path=None):
-    """Рассчитывает итоговый прогресс с использованием комбинированной формулы
+def calculate_final_score(start_weight: float, current_weight: float, height: float, target_weight: float, user_id=None, db_path=None) -> float:
+    """Рассчитывает итоговый прогресс с использованием комбинированной формулы.
+    
     :param start_weight: начальный вес
     :param current_weight: текущий вес
     :param height: рост
@@ -165,6 +165,4 @@ def calculate_final_score(start_weight, current_weight, height, target_weight, u
         # Добавляем бонус за активности (например, 0.1 балла за каждые 100 калорий)
         activity_bonus = daily_calories * 0.001
 
-    final_score = base_score + activity_bonus
-
-    return final_score
+    return base_score + activity_bonus

@@ -51,7 +51,7 @@ async def process_weight_input(message: Message) -> None:
         # Используем константы вместо магических чисел
         min_weight = 30
         max_weight = 300
-        
+
         if weight < min_weight or weight > max_weight:
             logger.debug("Вес %s кг вне допустимого диапазона для пользователя %s", weight, message.from_user.id)
             await message.answer(f"Вес должен быть от {min_weight} до {max_weight} кг. Введи снова:")
@@ -230,7 +230,7 @@ async def process_activity_value(message: Message, state: FSMContext) -> None:
         max_running_minutes = 300  # до 5 часов
         max_cycling_km = 200  # до 200 км
         max_cardio_kcal = 2000  # до 2000 ккал
-        
+
         if activity_name == "walking" and (value < 0 or value > max_steps):
             logger.debug("Значение %s вне диапазона для ходьбы", value)
             await message.answer(f"Количество шагов должно быть от 0 до {max_steps}. Введи снова:")

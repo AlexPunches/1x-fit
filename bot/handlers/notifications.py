@@ -65,7 +65,9 @@ class NotificationScheduler:
                     text="⏰ Привет! Пожалуйста, введи свой сегодняшний вес в килограммах. Используй команду /weight или просто пришли число.",
                 )
             except Exception as e:
-                print(f"Ошибка при отправке уведомления пользователю {user_id}: {e}")
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Ошибка при отправке уведомления пользователю {user_id}: {e}")
 
         conn.close()
 
@@ -86,7 +88,9 @@ class NotificationScheduler:
                     text="⏰ Не забудь ввести сегодняшнюю активность! Пожалуйста, используй команду /activity, чтобы ввести данные о своей активности за сегодня.",
                 )
             except Exception as e:
-                print(f"Ошибка при отправке уведомления пользователю {user_id}: {e}")
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.error(f"Ошибка при отправке уведомления пользователю {user_id}: {e}")
 
         conn.close()
 
