@@ -22,8 +22,8 @@ class RegistrationStates(StatesGroup):
 
 
 @router.message(CommandStart())
-async def cmd_start(message: Message, state: FSMContext):
-    """Обработка команды /start"""
+async def cmd_start(message: Message, state: FSMContext) -> None:
+    """Обработка команды /start."""
     await message.answer(
         "Привет! Давай начнем регистрацию в соревновании по снижению веса.\n\n"
         "Сначала введи свой ник:",
@@ -32,7 +32,7 @@ async def cmd_start(message: Message, state: FSMContext):
 
 
 @router.message(RegistrationStates.waiting_for_username)
-async def process_username(message: Message, state: FSMContext):
+async def process_username(message: Message, state: FSMContext) -> None:
     """Обработка ввода ника"""
     username = message.text.strip()
 
@@ -48,7 +48,7 @@ async def process_username(message: Message, state: FSMContext):
 
 
 @router.message(RegistrationStates.waiting_for_gender)
-async def process_gender(message: Message, state: FSMContext):
+async def process_gender(message: Message, state: FSMContext) -> None:
     """Обработка ввода пола"""
     gender = message.text.strip().upper()
 
@@ -65,7 +65,7 @@ async def process_gender(message: Message, state: FSMContext):
 
 
 @router.message(RegistrationStates.waiting_for_age)
-async def process_age(message: Message, state: FSMContext):
+async def process_age(message: Message, state: FSMContext) -> None:
     """Обработка ввода возраста"""
     try:
         age = int(message.text.strip())
@@ -83,7 +83,7 @@ async def process_age(message: Message, state: FSMContext):
 
 
 @router.message(RegistrationStates.waiting_for_height)
-async def process_height(message: Message, state: FSMContext):
+async def process_height(message: Message, state: FSMContext) -> None:
     """Обработка ввода роста"""
     try:
         height = float(message.text.strip())
@@ -101,7 +101,7 @@ async def process_height(message: Message, state: FSMContext):
 
 
 @router.message(RegistrationStates.waiting_for_start_weight)
-async def process_start_weight(message: Message, state: FSMContext):
+async def process_start_weight(message: Message, state: FSMContext) -> None:
     """Обработка ввода стартового веса"""
     try:
         start_weight = float(message.text.strip())
@@ -119,7 +119,7 @@ async def process_start_weight(message: Message, state: FSMContext):
 
 
 @router.message(RegistrationStates.waiting_for_target_weight)
-async def process_target_weight(message: Message, state: FSMContext):
+async def process_target_weight(message: Message, state: FSMContext) -> None:
     """Обработка ввода целевого веса"""
     try:
         target_weight = float(message.text.strip())

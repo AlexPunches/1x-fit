@@ -1,5 +1,6 @@
 # bot/handlers/notifications.py
 
+import logging
 import sqlite3
 
 import pytz
@@ -64,10 +65,9 @@ class NotificationScheduler:
                     chat_id=user_id,
                     text="⏰ Привет! Пожалуйста, введи свой сегодняшний вес в килограммах. Используй команду /weight или просто пришли число.",
                 )
-            except Exception as e:
-                import logging
+            except Exception:
                 logger = logging.getLogger(__name__)
-                logger.error(f"Ошибка при отправке уведомления пользователю {user_id}: {e}")
+                logger.exception("Ошибка при отправке уведомления пользователю %s", user_id)
 
         conn.close()
 
@@ -87,10 +87,9 @@ class NotificationScheduler:
                     chat_id=user_id,
                     text="⏰ Не забудь ввести сегодняшнюю активность! Пожалуйста, используй команду /activity, чтобы ввести данные о своей активности за сегодня.",
                 )
-            except Exception as e:
-                import logging
+            except Exception:
                 logger = logging.getLogger(__name__)
-                logger.error(f"Ошибка при отправке уведомления пользователю {user_id}: {e}")
+                logger.exception("Ошибка при отправке уведомления пользователю %s", user_id)
 
         conn.close()
 

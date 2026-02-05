@@ -14,7 +14,7 @@ from handlers.notifications import scheduler
 from settings import settings
 
 
-async def on_startup(app: web.Application):
+async def on_startup(app: web.Application) -> None:
     # Инициализация базы данных
     init_db()
 
@@ -22,12 +22,12 @@ async def on_startup(app: web.Application):
     scheduler.start_scheduler()
 
 
-async def on_cleanup(app: web.Application):
+async def on_cleanup(app: web.Application) -> None:
     # Остановка планировщика уведомлений
     scheduler.stop_scheduler()
 
 
-async def main():
+async def main() -> None:
     # Настройка логирования
     logging.basicConfig(level=getattr(logging, settings.log_min_level.upper(), logging.INFO))
 

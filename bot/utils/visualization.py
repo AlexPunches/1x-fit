@@ -1,5 +1,6 @@
 import sqlite3
 from datetime import datetime, timedelta
+from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -7,9 +8,9 @@ from database.models import DATABASE_PATH
 from settings import settings
 
 
-def create_individual_chart(user_id: int, user_data: dict):
+def create_individual_chart(user_id: int, user_data: dict) -> str | None:
     """Создает индивидуальный график прогресса для одного участника.
-    
+
     :param user_id: ID пользователя
     :param user_data: данные пользователя
     :return: путь к файлу графика
@@ -83,7 +84,6 @@ def create_individual_chart(user_id: int, user_data: dict):
     plt.xticks(rotation=45)
 
     # Сохраняем график
-    from pathlib import Path
     Path(settings.charts_dir).mkdir(parents=True, exist_ok=True)
     filename = f"{settings.charts_dir}individual_{user_id}_{datetime.now(tz=None).strftime('%Y%m%d_%H%M%S')}.png"
     plt.tight_layout()
@@ -93,9 +93,9 @@ def create_individual_chart(user_id: int, user_data: dict):
     return filename
 
 
-def create_activity_chart(user_id: int):
+def create_activity_chart(user_id: int) -> str | None:
     """Создает график активности для одного участника.
-    
+
     :param user_id: ID пользователя
     :return: путь к файлу графика
     """
@@ -124,7 +124,6 @@ def create_activity_chart(user_id: int):
     dates = [datetime.strptime(record[1].split()[0], "%Y-%m-%d").replace(tzinfo=None) for record in activity_records]
     values = [record[0] for record in activity_records]
     activity_names = [record[2] for record in activity_records]
-    # units = [record[3] for record in activity_records]  # Не используется
     calories = [record[4] if record[4] is not None else 0 for record in activity_records]
 
     # Группировка данных по датам
@@ -169,7 +168,6 @@ def create_activity_chart(user_id: int):
     plt.xticks(rotation=45)
 
     # Сохраняем график
-    from pathlib import Path
     Path(settings.charts_dir).mkdir(parents=True, exist_ok=True)
     filename = f"{settings.charts_dir}activity_{user_id}_{datetime.now(tz=None).strftime('%Y%m%d_%H%M%S')}.png"
     plt.tight_layout()
@@ -179,9 +177,9 @@ def create_activity_chart(user_id: int):
     return filename
 
 
-def create_comparison_chart():
+def create_comparison_chart() -> str | None:
     """Создает сравнительный график для всех участников.
-    
+
     :return: путь к файлу графика
     """
     # Получаем данные из базы
@@ -238,13 +236,12 @@ def create_comparison_chart():
     ax.grid(axis="x", linestyle="--", alpha=0.6)
 
     # Добавляем значения на бары
-    for bar, progress in zip(bars, current_progress):
+    for bar, progress in zip(bars, current_progress, strict=True):
         width = bar.get_width()
         ax.text(width, bar.get_y() + bar.get_height()/2, f"{progress:.1f}",
                 ha="left", va="center", fontweight="bold")
 
     # Сохраняем график
-    from pathlib import Path
     Path(settings.charts_dir).mkdir(parents=True, exist_ok=True)
     filename = f"{settings.charts_dir}comparison_{datetime.now(tz=None).strftime('%Y%m%d_%H%M%S')}.png"
     plt.tight_layout()
@@ -254,9 +251,9 @@ def create_comparison_chart():
     return filename
 
 
-def create_total_activity_chart():
+def create_total_activity_chart() -> str | None:
     """Создает сравнительный график активности всех участников.
-    
+
     :return: путь к файлу графика
     """
     # Получаем данные из базы
@@ -301,13 +298,12 @@ def create_total_activity_chart():
     ax.grid(axis="x", linestyle="--", alpha=0.6)
 
     # Добавляем значения на бары
-    for bar, calories in zip(bars, total_calories):
+    for bar, calories in zip(bars, total_calories, strict=True):
         width = bar.get_width()
         ax.text(width, bar.get_y() + bar.get_height()/2, f"{calories:.0f}",
                 ha="left", va="center", fontweight="bold")
 
     # Сохраняем график
-    from pathlib import Path
     Path(settings.charts_dir).mkdir(parents=True, exist_ok=True)
     filename = f"{settings.charts_dir}total_activity_{datetime.now(tz=None).strftime('%Y%m%d_%H%M%S')}.png"
     plt.tight_layout()

@@ -12,8 +12,8 @@ router = Router()
 
 
 @router.message(Command("progress"))
-async def cmd_progress(message: Message):
-    """Обработка команды /progress - отображение прогресса"""
+async def cmd_progress(message: Message) -> None:
+    """Обработка команды /progress - отображение прогресса."""
     user_id = message.from_user.id
 
     # Проверяем, зарегистрирован ли пользователь
@@ -36,7 +36,7 @@ async def cmd_progress(message: Message):
     """, (user_id,))
 
     user_data = cursor.fetchone()
-    username, start_weight, target_weight, height = user_data
+    username, start_weight, target_weight, _height = user_data
 
     # Получаем последнюю запись веса
     cursor.execute("""
@@ -81,8 +81,8 @@ async def cmd_progress(message: Message):
 
 
 @router.message(Command("chart"))
-async def cmd_chart(message: Message):
-    """Обработка команды /chart - отображение графика прогресса"""
+async def cmd_chart(message: Message) -> None:
+    """Обработка команды /chart - отображение графика прогресса."""
     user_id = message.from_user.id
 
     # Проверяем, зарегистрирован ли пользователь
@@ -126,8 +126,8 @@ async def cmd_chart(message: Message):
 
 
 @router.message(Command("activity_chart"))
-async def cmd_activity_chart(message: Message):
-    """Обработка команды /activity_chart - отображение графика активности"""
+async def cmd_activity_chart(message: Message) -> None:
+    """Обработка команды /activity_chart - отображение графика активности."""
     user_id = message.from_user.id
 
     # Проверяем, зарегистрирован ли пользователь
@@ -163,8 +163,8 @@ async def cmd_activity_chart(message: Message):
 
 
 @router.message(Command("activities"))
-async def cmd_activities(message: Message):
-    """Обработка команды /activities - отображение статистики активности"""
+async def cmd_activities(message: Message) -> None:
+    """Обработка команды /activities - отображение статистики активности."""
     user_id = message.from_user.id
 
     # Проверяем, зарегистрирован ли пользователь
@@ -207,8 +207,8 @@ async def cmd_activities(message: Message):
 
 
 @router.message(Command("rating"))
-async def cmd_rating(message: Message):
-    """Обработка команды /rating - отображение сравнительного графика"""
+async def cmd_rating(message: Message) -> None:
+    """Обработка команды /rating - отображение сравнительного графика."""
     # Создаем сравнительный график прогресса
     chart_path = create_comparison_chart()
 
@@ -223,8 +223,8 @@ async def cmd_rating(message: Message):
 
 
 @router.message(Command("activity_rating"))
-async def cmd_activity_rating(message: Message):
-    """Обработка команды /activity_rating - отображение сравнительного графика активности"""
+async def cmd_activity_rating(message: Message) -> None:
+    """Обработка команды /activity_rating - отображение сравнительного графика активности."""
     # Создаем сравнительный график активности
     from utils.visualization import create_total_activity_chart
     chart_path = create_total_activity_chart()
