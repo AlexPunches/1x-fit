@@ -138,24 +138,28 @@ def calculate_calories_from_activities(user_id: int, db_path: str, days: int = 1
     return result if result is not None else 0
 
 
-def calculate_final_score(
-    start_weight: float,
-    current_weight: float,
-    height: float,
-    target_weight: float,
-    user_id: int | None = None,
-    db_path: str | None = None,
-) -> float:
+@dataclass
+class ScoreCalculationParams:
+    start_weight: float
+    current_weight: float
+    height: float
+    target_weight: float
+    user_id: int | None = None
+    db_path: str | None = None
+
+
+def calculate_final_score(params: ScoreCalculationParams) -> float:
     """Рассчитывает итоговый прогресс с использованием комбинированной формулы.
 
-    :param start_weight: начальный вес
-    :param current_weight: текущий вес
-    :param height: рост
-    :param target_weight: целевой вес
-    :param user_id: ID пользователя (для учета активностей)
-    :param db_path: путь к базе данных
+    :param params: параметры для расчета прогресса
     :return: итоговый прогресс
     """
+    start_weight = params.start_weight
+    current_weight = params.current_weight
+    height = params.height
+    target_weight = params.target_weight
+    user_id = params.user_id
+    db_path = params.db_path
     bmi_based_score = calculate_progress_points(start_weight, current_weight, height, target_weight)
     percentage_based_score = calculate_adjusted_percentage(start_weight, current_weight, height)
 

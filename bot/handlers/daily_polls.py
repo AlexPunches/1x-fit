@@ -10,7 +10,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import KeyboardButton, Message, ReplyKeyboardMarkup
 from database.models import DATABASE_PATH
-from utils.calculations import calculate_final_score
+from utils.calculations import ScoreCalculationParams, calculate_final_score
 
 logger = logging.getLogger(__name__)
 
@@ -81,7 +81,15 @@ async def process_weight_input(message: Message) -> None:
             start_weight, target_weight, height = user_data
 
             # Рассчитываем прогресс
-            progress_score = calculate_final_score(start_weight, weight, height, target_weight, user_id=user_id, db_path=DATABASE_PATH)
+            params = ScoreCalculationParams(
+                start_weight=start_weight,
+                current_weight=weight,
+                height=height,
+                target_weight=target_weight,
+                user_id=user_id,
+                db_path=DATABASE_PATH,
+            )
+            progress_score = calculate_final_score(params)
 
             # Сохраняем прогресс в базу
             cursor.execute("""
