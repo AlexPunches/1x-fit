@@ -43,7 +43,8 @@ async def main() -> None:
     # Проверяем режим работы: development или production
     if settings.app_env.lower() == "development":
         # Режим разработки - запуск с polling
-        logging.info("Запуск бота в режиме разработки (polling)...")
+        logger = logging.getLogger(__name__)
+        logger.info("Запуск бота в режиме разработки (polling)...")
 
         # Инициализация базы данных
         init_db()
@@ -95,13 +96,13 @@ async def main() -> None:
         site = web.TCPSite(runner, host, port)
         await site.start()
 
-        logging.info(f"Бот запущен на {host}:{port}")
+        logger.info("Бот запущен на %s:%s", host, port)
 
         # Бесконечный цикл
         try:
             await asyncio.sleep(float("inf"))
         except (KeyboardInterrupt, SystemExit):
-            logging.warning("Shutting down...")
+            logger.warning("Shutting down...")
         finally:
             # Остановка планировщика при завершении работы
             scheduler.stop_scheduler()

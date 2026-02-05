@@ -6,7 +6,12 @@ from aiogram import Router
 from aiogram.filters import Command
 from aiogram.types import FSInputFile, Message
 from database.models import DATABASE_PATH
-from utils.visualization import create_comparison_chart, create_individual_chart
+from utils.visualization import (
+    create_activity_chart,
+    create_comparison_chart,
+    create_individual_chart,
+    create_total_activity_chart,
+)
 
 router = Router()
 
@@ -149,7 +154,6 @@ async def cmd_activity_chart(message: Message) -> None:
     conn.close()
 
     # Создаем график активности
-    from utils.visualization import create_activity_chart
     chart_path = create_activity_chart(user_id)
 
     if chart_path:
@@ -226,7 +230,6 @@ async def cmd_rating(message: Message) -> None:
 async def cmd_activity_rating(message: Message) -> None:
     """Обработка команды /activity_rating - отображение сравнительного графика активности."""
     # Создаем сравнительный график активности
-    from utils.visualization import create_total_activity_chart
     chart_path = create_total_activity_chart()
 
     if chart_path:

@@ -187,7 +187,7 @@ def create_comparison_chart() -> str | None:
     cursor = conn.cursor()
 
     cursor.execute("""
-        SELECT u.id, u.username, u.start_weight, u.target_weight, 
+        SELECT u.id, u.username, u.start_weight, u.target_weight,
                MAX(p.progress_points) as current_progress
         FROM users u
         LEFT JOIN progress p ON u.id = p.user_id
