@@ -2,7 +2,7 @@
 
 import logging
 import sqlite3
-from datetime import datetime
+from datetime import UTC, datetime
 
 from aiogram import F, Router
 from aiogram.filters import Command, StateFilter
@@ -66,7 +66,7 @@ async def process_weight_input(message: Message) -> None:
         cursor.execute("""
             INSERT INTO weight_records (user_id, weight, record_date)
             VALUES (?, ?, ?)
-        """, (user_id, weight, datetime.now(tz=None).strftime("%Y-%m-%d %H:%M:%S")))
+        """, (user_id, weight, datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")))
 
         # Получаем данные пользователя для расчета прогресса
         cursor.execute("""
@@ -87,7 +87,7 @@ async def process_weight_input(message: Message) -> None:
             cursor.execute("""
                 INSERT INTO progress (user_id, progress_points, calculation_date)
                 VALUES (?, ?, ?)
-            """, (user_id, progress_score, datetime.now(tz=None).strftime("%Y-%m-%d %H:%M:%S")))
+            """, (user_id, progress_score, datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")))
 
         conn.commit()
         conn.close()
@@ -266,7 +266,7 @@ async def process_activity_value(message: Message, state: FSMContext) -> None:
         cursor.execute("""
             INSERT INTO activity_records (user_id, activity_type_id, value, calories, record_date)
             VALUES (?, ?, ?, ?, ?)
-        """, (user_id, activity_type_id, value, calories, datetime.now(tz=None).strftime("%Y-%m-%d %H:%M:%S")))
+        """, (user_id, activity_type_id, value, calories, datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")))
 
         conn.commit()
         conn.close()

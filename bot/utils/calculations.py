@@ -1,5 +1,6 @@
 import sqlite3
-from datetime import datetime, timedelta
+from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 
 
 def calculate_bmi(weight: float, height: float) -> float:
@@ -122,7 +123,7 @@ def calculate_calories_from_activities(user_id: int, db_path: str, days: int = 1
     cursor = conn.cursor()
 
     # Рассчитываем дату начала периода
-    start_date = (datetime.now(tz=None) - timedelta(days=days)).strftime("%Y-%m-%d")
+    start_date = (datetime.now(UTC) - timedelta(days=days)).strftime("%Y-%m-%d")
 
     # Получаем сумму сожженных калорий за указанный период
     cursor.execute("""
@@ -137,7 +138,14 @@ def calculate_calories_from_activities(user_id: int, db_path: str, days: int = 1
     return result if result is not None else 0
 
 
-def calculate_final_score(start_weight: float, current_weight: float, height: float, target_weight: float, user_id: int | None = None, db_path: str | None = None) -> float:
+def calculate_final_score(
+    start_weight: float,
+    current_weight: float,
+    height: float,
+    target_weight: float,
+    user_id: int | None = None,
+    db_path: str | None = None,
+) -> float:
     """Рассчитывает итоговый прогресс с использованием комбинированной формулы.
 
     :param start_weight: начальный вес

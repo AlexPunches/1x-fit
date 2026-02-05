@@ -1,5 +1,5 @@
 import sqlite3
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 import matplotlib.pyplot as plt
@@ -44,7 +44,7 @@ def create_individual_chart(user_id: int, user_data: dict) -> str | None:
     if not records:
         return None
 
-    dates = [datetime.strptime(record[1], "%Y-%m-%d %H:%M:%S").replace(tzinfo=None) for record in records]
+    dates = [datetime.strptime(record[1], "%Y-%m-%d %H:%M:%S").replace(tzinfo=datetime.timezone.utc) for record in records]
     weights = [record[0] for record in records]
     progress_points = [record[2] if record[2] is not None else 0 for record in records]
 
@@ -64,7 +64,7 @@ def create_individual_chart(user_id: int, user_data: dict) -> str | None:
     ax1.axhline(y=target_weight, color="green", linestyle="--", label=f"Цель: {target_weight}кг")
 
     # Добавляем сетку
-    ax1.grid(True, linestyle="--", alpha=0.6)
+    ax1.grid(b=True, linestyle="--", alpha=0.6)
 
     # Создаем вторую ось для прогресса
     ax2 = ax1.twinx()
@@ -85,7 +85,7 @@ def create_individual_chart(user_id: int, user_data: dict) -> str | None:
 
     # Сохраняем график
     Path(settings.charts_dir).mkdir(parents=True, exist_ok=True)
-    filename = f"{settings.charts_dir}individual_{user_id}_{datetime.now(tz=None).strftime('%Y%m%d_%H%M%S')}.png"
+    filename = f"{settings.charts_dir}individual_{user_id}_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.png"
     plt.tight_layout()
     plt.savefig(filename)
     plt.close()
@@ -104,7 +104,7 @@ def create_activity_chart(user_id: int) -> str | None:
     cursor = conn.cursor()
 
     # Получаем данные об активности за последние 30 дней
-    thirty_days_ago = (datetime.now(tz=None) - timedelta(days=30)).strftime("%Y-%m-%d")
+    thirty_days_ago = (datetime.now(datetime.timezone.utc) - timedelta(days=30)).strftime("%Y-%m-%d")
 
     cursor.execute("""
         SELECT ar.value, ar.record_date, at.name, at.unit, ar.calories
@@ -121,7 +121,7 @@ def create_activity_chart(user_id: int) -> str | None:
         return None
 
     # Подготовка данных
-    dates = [datetime.strptime(record[1].split()[0], "%Y-%m-%d").replace(tzinfo=None) for record in activity_records]
+    dates = [datetime.strptime(record[1].split()[0], "%Y-%m-%d").replace(tzinfo=datetime.timezone.utc) for record in activity_records]
     values = [record[0] for record in activity_records]
     activity_names = [record[2] for record in activity_records]
     calories = [record[4] if record[4] is not None else 0 for record in activity_records]
@@ -159,7 +159,7 @@ def create_activity_chart(user_id: int) -> str | None:
     ax.tick_params(axis="y", labelcolor="coral")
 
     # Добавляем сетку
-    ax.grid(True, linestyle="--", alpha=0.6)
+    ax.grid(b=True, linestyle="--", alpha=0.6)
 
     # Настраиваем заголовок
     plt.title(f"Активность участника (ID: {user_id}) за последние 30 дней")
@@ -169,7 +169,7 @@ def create_activity_chart(user_id: int) -> str | None:
 
     # Сохраняем график
     Path(settings.charts_dir).mkdir(parents=True, exist_ok=True)
-    filename = f"{settings.charts_dir}activity_{user_id}_{datetime.now(tz=None).strftime('%Y%m%d_%H%M%S')}.png"
+    filename = f"{settings.charts_dir}activity_{user_id}_{datetime.now(datetime.timezone.utc).strftime('%Y%m%d_%H%M%S')}.png"
     plt.tight_layout()
     plt.savefig(filename)
     plt.close()
@@ -243,7 +243,7 @@ def create_comparison_chart() -> str | None:
 
     # Сохраняем график
     Path(settings.charts_dir).mkdir(parents=True, exist_ok=True)
-    filename = f"{settings.charts_dir}comparison_{datetime.now(tz=None).strftime('%Y%m%d_%H%M%S')}.png"
+    filename = f"{settings.charts_dir}comparison_{datetime.now(datetime.timezone.utc).strftime('%Y%m%d_%H%M%S')}.png"
     plt.tight_layout()
     plt.savefig(filename)
     plt.close()
@@ -261,7 +261,7 @@ def create_total_activity_chart() -> str | None:
     cursor = conn.cursor()
 
     # Получаем суммарные калории за последние 7 дней для каждого пользователя
-    seven_days_ago = (datetime.now(tz=None) - timedelta(days=7)).strftime("%Y-%m-%d")
+    seven_days_ago = (datetime.now(datetime.timezone.utc) - timedelta(days=7)).strftime("%Y-%m-%d")
 
     cursor.execute("""
         SELECT u.id, u.username, COALESCE(SUM(ar.calories), 0) as total_calories
@@ -305,7 +305,7 @@ def create_total_activity_chart() -> str | None:
 
     # Сохраняем график
     Path(settings.charts_dir).mkdir(parents=True, exist_ok=True)
-    filename = f"{settings.charts_dir}total_activity_{datetime.now(tz=None).strftime('%Y%m%d_%H%M%S')}.png"
+    filename = f"{settings.charts_dir}total_activity_{datetime.now(datetime.timezone.utc).strftime('%Y%m%d_%H%M%S')}.png"
     plt.tight_layout()
     plt.savefig(filename)
     plt.close()
