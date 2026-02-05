@@ -1,14 +1,16 @@
 # bot/database/models.py
-
+import logging
 import sqlite3
 
 from settings import settings
 
+logger = logging.getLogger(__name__)
 DATABASE_PATH = settings.database_path
 
 
 def init_db():
     """Инициализация базы данных"""
+    logger.info(DATABASE_PATH)
     conn = sqlite3.connect(DATABASE_PATH)
     cursor = conn.cursor()
 

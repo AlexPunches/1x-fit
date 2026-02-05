@@ -1,3 +1,4 @@
+import pathlib
 
 from pydantic import Field
 from pydantic_settings import BaseSettings
@@ -5,6 +6,8 @@ from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     # Bot configuration
+    base_path: pathlib.Path = pathlib.Path(__file__).parent.absolute()
+
     bot_token: str = Field(..., alias="BOT_TOKEN", description="Telegram bot token from BotFather")
     admin_id: str | None = Field(None, alias="ADMIN_ID", description="Admin user ID for administrative functions")
 
@@ -13,10 +16,10 @@ class Settings(BaseSettings):
     activity_notification_time: str = Field("22:42", alias="ACTIVITY_NOTIFICATION_TIME", description="Time for activity notifications in HH:MM format")
 
     # Database configuration
-    database_path: str = Field("../data/database.db", alias="DATABASE_PATH", description="Path to SQLite database file")
+    database_path: pathlib.Path = base_path / "../data/database.db"
 
     # Charts configuration
-    charts_dir: str = Field("../charts/", alias="CHARTS_DIR", description="Directory to store generated charts")
+    charts_dir: pathlib.Path = base_path / "../charts/"
 
     # Webhook configuration
     webhook_url: str | None = Field(None, alias="WEBHOOK_URL", description="Webhook URL for the bot")
