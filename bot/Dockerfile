@@ -15,6 +15,7 @@ RUN apt-get update && apt-get install -y \
     zlib1g \
     libpng16-16t64 \
     python3-dev \
+    sqlite3 \
     && rm -rf /var/lib/apt/lists/*
 
 # Установка pip-зависимостей
