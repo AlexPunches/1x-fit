@@ -18,8 +18,8 @@ router = Router()
 
 
 @router.message(Command("weight"))
-async def cmd_weight(message: Message):
-    """Обработка команды /weight - ввод текущего веса"""
+async def cmd_weight(message: Message) -> None:
+    """Обработка команды /weight - ввод текущего веса."""
     user_id = message.from_user.id
 
     # Проверяем, зарегистрирован ли пользователь
@@ -40,17 +40,21 @@ async def cmd_weight(message: Message):
 
 
 @router.message(F.text.func(lambda x: x.replace(".", "", 1).isdigit()), StateFilter(None))
-async def process_weight_input(message: Message):
-    """Обработка ввода веса"""
+async def process_weight_input(message: Message) -> None:
+    """Обработка ввода веса."""
     logger.debug("Получено числовое сообщение: %s от пользователя %s", message.text, message.from_user.id)
 
     try:
         weight = float(message.text)
         logger.debug("Обнаружен вес: %s кг для пользователя %s", weight, message.from_user.id)
 
-        if weight < 30 or weight > 300:
+        # Используем константы вместо магических чисел
+        min_weight = 30
+        max_weight = 300
+        
+        if weight < min_weight or weight > max_weight:
             logger.debug("Вес %s кг вне допустимого диапазона для пользователя %s", weight, message.from_user.id)
-            await message.answer("Вес должен быть от 30 до 300 кг. Введи снова:")
+            await message.answer(f"Вес должен быть от {min_weight} до {max_weight} кг. Введи снова:")
             return
 
         user_id = message.from_user.id
@@ -62,7 +66,7 @@ async def process_weight_input(message: Message):
         cursor.execute("""
             INSERT INTO weight_records (user_id, weight, record_date)
             VALUES (?, ?, ?)
-        """, (user_id, weight, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+        """, (user_id, weight, datetime.now(tz=None).strftime("%Y-%m-%d %H:%M:%S")))
 
         # Получаем данные пользователя для расчета прогресса
         cursor.execute("""
@@ -83,7 +87,7 @@ async def process_weight_input(message: Message):
             cursor.execute("""
                 INSERT INTO progress (user_id, progress_points, calculation_date)
                 VALUES (?, ?, ?)
-            """, (user_id, progress_score, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+            """, (user_id, progress_score, datetime.now(tz=None).strftime("%Y-%m-%d %H:%M:%S")))
 
         conn.commit()
         conn.close()
@@ -121,8 +125,8 @@ async def process_weight_input(message: Message):
 
 
 @router.message(Command("activity"))
-async def cmd_activity(message: Message):
-    """Обработка команды /activity - ввод активности"""
+async def cmd_activity(message: Message) -> None:
+    """Обработка команды /activity - ввод активности."""
     user_id = message.from_user.id
 
     # Проверяем, зарегистрирован ли пользователь
@@ -149,9 +153,10 @@ async def cmd_activity(message: Message):
     # Создаем клавиатуру с типами активности
     keyboard = []
     row = []
-    for activity_id, name, description in activities:
+    for _activity_id, _name, description in activities:
         row.append(KeyboardButton(text=description))
-        if len(row) == 2:  # Добавляем по 2 кнопки в ряд для лучшего отображения
+        buttons_per_row = 2  # Добавляем по 2 кнопки в ряд для лучшего отображения
+        if len(row) == buttons_per_row:
             keyboard.append(row)
             row = []
     if row:  # Добавляем оставшиеся кнопки
@@ -172,8 +177,8 @@ class ActivityStates(StatesGroup):
 
 
 @router.message(ActivityStates.waiting_for_activity_type)
-async def process_activity_type_selection(message: Message, state: FSMContext):
-    """Обработка выбора типа активности"""
+async def process_activity_type_selection(message: Message, state: FSMContext) -> None:
+    """Обработка выбора типа активности."""
     activity_description = message.text
 
     # Получаем ID типа активности по описанию
@@ -203,8 +208,8 @@ async def process_activity_type_selection(message: Message, state: FSMContext):
 
 
 @router.message(ActivityStates.waiting_for_value)
-async def process_activity_value(message: Message, state: FSMContext):
-    """Обработка ввода значения активности"""
+async def process_activity_value(message: Message, state: FSMContext) -> None:
+    """Обработка ввода значения активности."""
     logger.debug("Получено значение активности: %s от пользователя %s", message.text, message.from_user.id)
 
     try:
@@ -221,21 +226,26 @@ async def process_activity_value(message: Message, state: FSMContext):
                     user_id, activity_name, value, unit)
 
         # Проверяем диапазон значений в зависимости от типа активности
-        if activity_name == "walking" and (value < 0 or value > 50000):
+        max_steps = 50000
+        max_running_minutes = 300  # до 5 часов
+        max_cycling_km = 200  # до 200 км
+        max_cardio_kcal = 2000  # до 2000 ккал
+        
+        if activity_name == "walking" and (value < 0 or value > max_steps):
             logger.debug("Значение %s вне диапазона для ходьбы", value)
-            await message.answer("Количество шагов должно быть от 0 до 50000. Введи снова:")
+            await message.answer(f"Количество шагов должно быть от 0 до {max_steps}. Введи снова:")
             return
-        if activity_name == "running" and (value < 0 or value > 300):  # до 5 часов
+        if activity_name == "running" and (value < 0 or value > max_running_minutes):  # до 5 часов
             logger.debug("Значение %s вне диапазона для бега", value)
-            await message.answer("Время бега должно быть от 0 до 300 минут. Введи снова:")
+            await message.answer(f"Время бега должно быть от 0 до {max_running_minutes} минут. Введи снова:")
             return
-        if activity_name == "cycling" and (value < 0 or value > 200):  # до 200 км
+        if activity_name == "cycling" and (value < 0 or value > max_cycling_km):  # до 200 км
             logger.debug("Значение %s вне диапазона для велосипеда", value)
-            await message.answer("Расстояние на велосипеде должно быть от 0 до 200 км. Введи снова:")
+            await message.answer(f"Расстояние на велосипеде должно быть от 0 до {max_cycling_km} км. Введи снова:")
             return
-        if activity_name == "cardio" and (value < 0 or value > 2000):  # до 2000 ккал
+        if activity_name == "cardio" and (value < 0 or value > max_cardio_kcal):  # до 2000 ккал
             logger.debug("Значение %s вне диапазона для кардио", value)
-            await message.answer("Количество калорий должно быть от 0 до 2000. Введи снова:")
+            await message.answer(f"Количество калорий должно быть от 0 до {max_cardio_kcal}. Введи снова:")
             return
 
         # Сохраняем активность в базу
@@ -256,7 +266,7 @@ async def process_activity_value(message: Message, state: FSMContext):
         cursor.execute("""
             INSERT INTO activity_records (user_id, activity_type_id, value, calories, record_date)
             VALUES (?, ?, ?, ?, ?)
-        """, (user_id, activity_type_id, value, calories, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+        """, (user_id, activity_type_id, value, calories, datetime.now(tz=None).strftime("%Y-%m-%d %H:%M:%S")))
 
         conn.commit()
         conn.close()
@@ -278,8 +288,8 @@ async def process_activity_value(message: Message, state: FSMContext):
 
 
 @router.message(F.text.contains("Ходьба") | F.text.contains("Бег") | F.text.contains("Велосипед") | F.text.contains("Кардио"))
-async def quick_activity_selection(message: Message, state: FSMContext):
-    """Быстрый выбор активности через клавиатуру"""
+async def quick_activity_selection(message: Message, state: FSMContext) -> None:
+    """Быстрый выбор активности через клавиатуру."""
     activity_text = message.text
 
     # Определяем тип активности по тексту

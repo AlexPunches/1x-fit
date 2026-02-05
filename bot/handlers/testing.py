@@ -7,9 +7,8 @@ router = Router()
 
 
 @router.message(Command("test"))
-async def cmd_test(message: Message):
-    """Тестовая команда для проверки работоспособности бота
-    """
+async def cmd_test(message: Message) -> None:
+    """Тестовая команда для проверки работоспособности бота."""
     env_status = "разработки" if settings.app_env.lower() == "development" else "продакшена"
 
     response_text = (

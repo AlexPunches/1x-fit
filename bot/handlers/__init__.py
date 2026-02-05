@@ -3,7 +3,7 @@
 from aiogram import Router
 
 
-def setup_handlers(dp) -> None:
+def setup_handlers(dp: Router) -> None:
     """Функция для регистрации всех обработчиков."""
     from . import daily_polls, notifications, progress, registration, testing  # noqa: PLC0415
 

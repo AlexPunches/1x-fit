@@ -8,8 +8,8 @@ logger = logging.getLogger(__name__)
 DATABASE_PATH = settings.database_path
 
 
-def init_db():
-    """Инициализация базы данных"""
+def init_db() -> None:
+    """Инициализация базы данных."""
     logger.info(DATABASE_PATH)
     conn = sqlite3.connect(DATABASE_PATH)
     cursor = conn.cursor()

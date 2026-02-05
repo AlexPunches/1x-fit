@@ -13,12 +13,12 @@ router = Router()
 
 
 class NotificationScheduler:
-    def __init__(self):
+    def __init__(self) -> None:
         self.bot = Bot(token=settings.bot_token)
         self.scheduler = AsyncIOScheduler()
 
-    def start_scheduler(self):
-        """Запуск планировщика уведомлений"""
+    def start_scheduler(self) -> None:
+        """Запуск планировщика уведомлений."""
         # Используем московский часовой пояс
         tz = pytz.timezone("Europe/Moscow")
 
@@ -48,8 +48,8 @@ class NotificationScheduler:
         # Запускаем планировщик
         self.scheduler.start()
 
-    async def send_weight_reminders(self):
-        """Отправка напоминаний о вводе веса"""
+    async def send_weight_reminders(self) -> None:
+        """Отправка напоминаний о вводе веса."""
         conn = sqlite3.connect(DATABASE_PATH)
         cursor = conn.cursor()
 
@@ -69,8 +69,8 @@ class NotificationScheduler:
 
         conn.close()
 
-    async def send_activity_reminders(self):
-        """Отправка напоминаний о вводе активности"""
+    async def send_activity_reminders(self) -> None:
+        """Отправка напоминаний о вводе активности."""
         conn = sqlite3.connect(DATABASE_PATH)
         cursor = conn.cursor()
 
@@ -90,8 +90,8 @@ class NotificationScheduler:
 
         conn.close()
 
-    def stop_scheduler(self):
-        """Остановка планировщика уведомлений"""
+    def stop_scheduler(self) -> None:
+        """Остановка планировщика уведомлений."""
         if self.scheduler.running:
             self.scheduler.shutdown()
 

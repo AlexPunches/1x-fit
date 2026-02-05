@@ -1,5 +1,6 @@
-def calculate_bmi(weight, height):
-    """Рассчитывает ИМТ (индекс массы тела)
+def calculate_bmi(weight: float, height: float) -> float:
+    """Рассчитывает ИМТ (индекс массы тела).
+    
     :param weight: вес в кг
     :param height: рост в см
     :return: значение ИМТ
@@ -8,25 +9,33 @@ def calculate_bmi(weight, height):
     return weight / (height_m ** 2)
 
 
-def get_weight_factor(initial_bmi):
-    """Возвращает коэффициент, зависящий от начального ИМТ
+def get_weight_factor(initial_bmi: float) -> float:
+    """Возвращает коэффициент, зависящий от начального ИМТ.
+    
     :param initial_bmi: начальный ИМТ
     :return: коэффициент для расчета прогресса
     """
-    if initial_bmi < 25:  # нормальный вес
+    # Константы для порогов ИМТ
+    NORMAL_BMI_THRESHOLD = 25
+    OVERWEIGHT_BMI_THRESHOLD = 30
+    OBESITY1_BMI_THRESHOLD = 35
+    OBESITY2_BMI_THRESHOLD = 40
+    
+    if initial_bmi < NORMAL_BMI_THRESHOLD:  # нормальный вес
         return 1.0
-    if initial_bmi < 30:  # избыточный вес
+    if initial_bmi < OVERWEIGHT_BMI_THRESHOLD:  # избыточный вес
         return 1.2
-    if initial_bmi < 35:  # ожирение 1 степени
+    if initial_bmi < OBESITY1_BMI_THRESHOLD:  # ожирение 1 степени
         return 1.5
-    if initial_bmi < 40:  # ожирение 2 степени
+    if initial_bmi < OBESITY2_BMI_THRESHOLD:  # ожирение 2 степени
         return 1.8
     # ожирение 3 степени
     return 2.0
 
 
-def calculate_progress_points(start_weight, current_weight, height, target_weight):
-    """Рассчитывает прогресс в условных пунктах
+def calculate_progress_points(start_weight: float, current_weight: float, height: float, target_weight: float) -> float:
+    """Рассчитывает прогресс в условных пунктах.
+    
     :param start_weight: начальный вес
     :param current_weight: текущий вес
     :param height: рост
@@ -61,8 +70,9 @@ def calculate_progress_points(start_weight, current_weight, height, target_weigh
     return progress_points
 
 
-def calculate_percentage_loss(start_weight, current_weight):
-    """Рассчитывает процент снижения веса
+def calculate_percentage_loss(start_weight: float, current_weight: float) -> float:
+    """Рассчитывает процент снижения веса.
+    
     :param start_weight: начальный вес
     :param current_weight: текущий вес
     :return: процент снижения
@@ -70,8 +80,9 @@ def calculate_percentage_loss(start_weight, current_weight):
     return (start_weight - current_weight) / start_weight * 100
 
 
-def calculate_adjusted_percentage(start_weight, current_weight, height):
-    """Рассчитывает процент снижения веса с коррекцией на ИМТ
+def calculate_adjusted_percentage(start_weight: float, current_weight: float, height: float) -> float:
+    """Рассчитывает процент снижения веса с коррекцией на ИМТ.
+    
     :param start_weight: начальный вес
     :param current_weight: текущий вес
     :param height: рост
@@ -81,13 +92,18 @@ def calculate_adjusted_percentage(start_weight, current_weight, height):
     initial_bmi = calculate_bmi(start_weight, height)
 
     # Определяем коэффициент коррекции
-    if initial_bmi < 25:
+    NORMAL_BMI_THRESHOLD = 25
+    OVERWEIGHT_BMI_THRESHOLD = 30
+    OBESITY1_BMI_THRESHOLD = 35
+    OBESITY2_BMI_THRESHOLD = 40
+    
+    if initial_bmi < NORMAL_BMI_THRESHOLD:
         adjustment_factor = 1.0
-    elif initial_bmi < 30:
+    elif initial_bmi < OVERWEIGHT_BMI_THRESHOLD:
         adjustment_factor = 1.1
-    elif initial_bmi < 35:
+    elif initial_bmi < OBESITY1_BMI_THRESHOLD:
         adjustment_factor = 1.3
-    elif initial_bmi < 40:
+    elif initial_bmi < OBESITY2_BMI_THRESHOLD:
         adjustment_factor = 1.6
     else:
         adjustment_factor = 2.0
