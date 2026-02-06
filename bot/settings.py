@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     webhook_url: str | None = Field(None, alias="WEBHOOK_URL", description="Webhook URL for the bot")
 
     # Server configuration
-    host: str = Field("0.0.0.0", alias="HOST", description="Host for the web server")
+    host: str = Field("0.0.0.0", alias="HOST", description="Host for the web server")  # noqa:S104
     port: int = Field(8000, alias="PORT", description="Port for the web server")
 
     # Application environment
