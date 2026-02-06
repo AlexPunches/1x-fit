@@ -3,6 +3,7 @@
 import asyncio
 import logging
 
+import utils.messages as msg
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
@@ -12,7 +13,6 @@ from database.models import init_db
 from handlers import setup_handlers
 from handlers.notifications import scheduler
 from settings import settings
-import utils.messages as msg
 
 
 async def on_startup(app: web.Application) -> None:

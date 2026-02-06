@@ -2,6 +2,7 @@
 
 import sqlite3
 
+import utils.messages as msg
 from aiogram import Router
 from aiogram.filters import Command
 from aiogram.types import FSInputFile, Message
@@ -12,7 +13,6 @@ from utils.visualization import (
     create_individual_chart,
     create_total_activity_chart,
 )
-import utils.messages as msg
 
 router = Router()
 
@@ -69,13 +69,13 @@ async def cmd_progress(message: Message) -> None:
 
         # Отправляем информацию о прогрессе
         progress_info = msg.PROGRESS_INFO_WITH_CHANGE_SSSSS.format(
-            username, start_weight, last_weight, target_weight, 
-            change_text, "", last_date
+            username, start_weight, last_weight, target_weight,
+            change_text, "", last_date,
         )
         await message.answer(progress_info)
     else:
         await message.answer(
-            msg.PROGRESS_INFO_NO_RECORDS_SS.format(username, start_weight, target_weight)
+            msg.PROGRESS_INFO_NO_RECORDS_SS.format(username, start_weight, target_weight),
         )
 
     conn.close()
@@ -199,7 +199,7 @@ async def cmd_activities(message: Message) -> None:
             else:
                 activities_info += f"• {name}: {value} {unit} - {date}\n"
     else:
-        activities_info = "📊 У тебя пока нет записей об активности. Используй команду /activity, чтобы добавить."
+        activities_info = msg.NO_ACTIVITIES_RECORDS
 
     await message.answer(activities_info)
 
@@ -219,7 +219,7 @@ async def cmd_rating(message: Message) -> None:
             caption="📊 Сравнительный график прогресса участников",
         )
     else:
-        await message.answer("❌ Недостаточно данных для построения сравнительного графика")
+        await message.answer(msg.COMPARISON_CHART_NO_DATA)
 
 
 @router.message(Command("activity_rating"))
@@ -235,4 +235,4 @@ async def cmd_activity_rating(message: Message) -> None:
             caption="📊 Сравнительный график активности участников (за последние 7 дней)",
         )
     else:
-        await message.answer("❌ Недостаточно данных для построения сравнительного графика активности")
+        await message.answer(msg.TOTAL_ACTIVITY_CHART_NO_DATA)

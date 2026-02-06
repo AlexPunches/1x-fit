@@ -1,8 +1,8 @@
+import utils.messages as msg
 from aiogram import Router
 from aiogram.filters import Command
 from aiogram.types import Message
 from settings import settings
-import utils.messages as msg
 
 router = Router()
 

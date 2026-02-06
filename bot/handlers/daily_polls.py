@@ -4,6 +4,7 @@ import logging
 import sqlite3
 from datetime import UTC, datetime
 
+import utils.messages as msg
 from aiogram import F, Router
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
@@ -11,7 +12,6 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import KeyboardButton, Message, ReplyKeyboardMarkup
 from database.models import DATABASE_PATH
 from utils.calculations import ScoreCalculationParams, calculate_final_score
-import utils.messages as msg
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +31,7 @@ async def cmd_weight(message: Message) -> None:
     user_exists = cursor.fetchone()
 
     if not user_exists:
-        await message.answer("Сначала необходимо зарегистрироваться. Используй команду /start")
+        await message.answer(msg.NOT_REGISTERED)
         conn.close()
         return
 
@@ -149,7 +149,7 @@ async def cmd_activity(message: Message) -> None:
     user_exists = cursor.fetchone()
 
     if not user_exists:
-        await message.answer("Сначала необходимо зарегистрироваться. Используй команду /start")
+        await message.answer(msg.NOT_REGISTERED)
         conn.close()
         return
 
@@ -158,7 +158,7 @@ async def cmd_activity(message: Message) -> None:
     activities = cursor.fetchall()
 
     if not activities:
-        await message.answer("На данный момент нет доступных типов активности.")
+        await message.answer(msg.NO_ACTIVITIES_AVAILABLE)
         conn.close()
         return
 
@@ -175,7 +175,7 @@ async def cmd_activity(message: Message) -> None:
         keyboard.append(row)
 
     reply_markup = ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True)
-    await message.answer("Выбери тип активности:", reply_markup=reply_markup)
+    await message.answer(msg.ACTIVITY_SELECTION_PROMPT, reply_markup=reply_markup)
 
     conn.close()
 
@@ -201,7 +201,7 @@ async def process_activity_type_selection(message: Message, state: FSMContext) -
     result = cursor.fetchone()
 
     if not result:
-        await message.answer("Пожалуйста, выбери тип активности из предложенных вариантов.")
+        await message.answer(msg.INVALID_ACTIVITY_SELECTION)
         conn.close()
         return
 
@@ -213,7 +213,7 @@ async def process_activity_type_selection(message: Message, state: FSMContext) -
     conn.close()
 
     # Запрашиваем значение активности
-    await message.answer(msg.ACTIVITY_VALUE_REQUEST_S.format(activity_description, unit))
+    await message.answer(msg.ACTIVITY_VALUE_REQUEST_SS.format(activity_description, unit))
 
     # Переходим к следующему состоянию
     await state.set_state(ActivityStates.waiting_for_value)
@@ -286,9 +286,9 @@ async def process_activity_value(message: Message, state: FSMContext) -> None:
 
         # Отправляем подтверждение
         if calories:
-            await message.answer(msg.ACTIVITY_SAVED_WITH_CALORIES_SS.format(activity_name, value, unit, calories))
+            await message.answer(msg.ACTIVITY_SAVED_WITH_CALORIES_SSSS.format(activity_name, value, unit, calories))
         else:
-            await message.answer(msg.ACTIVITY_SAVED_S.format(activity_name, value, unit, 0))
+            await message.answer(msg.ACTIVITY_SAVED_SSSS.format(activity_name, value, unit, 0))
 
         logger.debug(msg.LOG_ACTIVITY_SAVED_SS, activity_name, user_id)
 
@@ -297,7 +297,7 @@ async def process_activity_value(message: Message, state: FSMContext) -> None:
 
     except ValueError:
         logger.debug("Значение '%s' не является числом для активности", message.text)
-        await message.answer("Пожалуйста, введи корректное числовое значение.")
+        await message.answer(msg.INVALID_ACTIVITY_VALUE_INPUT)
 
 
 @router.message(F.text.contains("Ходьба") | F.text.contains("Бег") | F.text.contains("Велосипед") | F.text.contains("Кардио"))
@@ -332,12 +332,12 @@ async def quick_activity_selection(message: Message, state: FSMContext) -> None:
             conn.close()
 
             # Запрашиваем значение активности
-            await message.answer(f"Теперь введи значение активности '{activity_text}' в {unit}:")
+            await message.answer(msg.ACTIVITY_VALUE_REQUEST_SS.format(activity_text, unit))
 
             # Переходим к следующему состоянию
             await state.set_state(ActivityStates.waiting_for_value)
         else:
-            await message.answer("Произошла ошибка при выборе типа активности.")
+            await message.answer(msg.ACTIVITY_SELECTION_ERROR)
     else:
         # Если это не выбор активности, возможно это значение - игнорируем
         pass

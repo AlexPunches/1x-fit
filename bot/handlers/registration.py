@@ -37,7 +37,7 @@ class RegistrationStates(StatesGroup):
 async def cmd_start(message: Message, state: FSMContext) -> None:
     """Обработка команды /start."""
     await message.answer(
-        msg.REGISTRATION_WELCOME_S.format(USERNAME_MIN_LENGTH, USERNAME_MAX_LENGTH)
+        msg.REGISTRATION_WELCOME_SS.format(USERNAME_MIN_LENGTH, USERNAME_MAX_LENGTH),
     )
     await state.set_state(RegistrationStates.waiting_for_username)
 
@@ -53,7 +53,7 @@ async def process_username(message: Message, state: FSMContext) -> None:
 
     await state.update_data(username=username)
     await message.answer(
-        "Отлично! Теперь укажи свой пол (М/Ж):",
+        msg.GENDER_REQUEST_SIMPLE,
     )
     await state.set_state(RegistrationStates.waiting_for_gender)
 
@@ -170,14 +170,14 @@ async def process_target_weight(message: Message, state: FSMContext) -> None:
         conn.close()
 
         await message.answer(
-            msg.REGISTRATION_COMPLETED_SS.format(
+            msg.REGISTRATION_COMPLETED_SSSSSS.format(
                 username,
-                'Мужской' if gender == 'M' else 'Женский',
+                "Мужской" if gender == "M" else "Женский",
                 age,
                 height,
                 start_weight,
-                target_weight
-            )
+                target_weight,
+            ),
         )
 
         await state.clear()

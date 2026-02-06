@@ -4,11 +4,11 @@ import logging
 import sqlite3
 
 import pytz
+import utils.messages as msg
 from aiogram import Bot, Router
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from database.models import DATABASE_PATH
 from settings import settings
-import utils.messages as msg
 
 # Создаем роутер для уведомлений
 router = Router()
