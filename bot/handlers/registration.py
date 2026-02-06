@@ -150,7 +150,7 @@ async def process_target_weight(message: Message, state: FSMContext) -> None:
 
         # Сохраняем данные в базу
         user_data = await state.get_data()
-        user_id = message.from_user.id
+        user_id = message.from_user.id if message.from_user and message.from_user.id is not None else 0
         username = user_data["username"]
         gender = user_data["gender"]
         age = user_data["age"]

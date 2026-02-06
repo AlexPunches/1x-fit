@@ -20,7 +20,7 @@ router = Router()
 @router.message(Command("weight"))
 async def cmd_weight(message: Message) -> None:
     """Обработка команды /weight - ввод текущего веса."""
-    user_id = message.from_user.id if message.from_user.id is not None else 0
+    user_id = message.from_user.id if message.from_user and message.from_user.id is not None else 0
 
     # Проверяем, зарегистрирован ли пользователь
     conn = sqlite3.connect(DATABASE_PATH)
@@ -42,7 +42,8 @@ async def cmd_weight(message: Message) -> None:
 @router.message(F.text.func(lambda x: x.replace(".", "", 1).isdigit()), StateFilter(None))
 async def process_weight_input(message: Message) -> None:
     """Обработка ввода веса."""
-    logger.debug("Получено числовое сообщение: %s от пользователя %s", message.text, message.from_user.id)
+    user_id_debug = message.from_user.id if message.from_user and message.from_user.id is not None else "unknown"
+    logger.debug("Получено числовое сообщение: %s от пользователя %s", message.text, user_id_debug)
 
     try:
         weight = float(message.text) if message.text is not None else 0.0
@@ -57,7 +58,7 @@ async def process_weight_input(message: Message) -> None:
             await message.answer(f"Вес должен быть от {min_weight} до {max_weight} кг. Введи снова:")
             return
 
-        user_id = message.from_user.id if message.from_user.id is not None else 0
+        user_id = message.from_user.id if message.from_user and message.from_user.id is not None else 0
 
         # Сохраняем вес в базу
         conn = sqlite3.connect(DATABASE_PATH)
@@ -135,7 +136,7 @@ async def process_weight_input(message: Message) -> None:
 @router.message(Command("activity"))
 async def cmd_activity(message: Message) -> None:
     """Обработка команды /activity - ввод активности."""
-    user_id = message.from_user.id if message.from_user.id is not None else 0
+    user_id = message.from_user.id if message.from_user and message.from_user.id is not None else 0
 
     # Проверяем, зарегистрирован ли пользователь
     conn = sqlite3.connect(DATABASE_PATH)
@@ -222,7 +223,7 @@ async def process_activity_value(message: Message, state: FSMContext) -> None:
 
     try:
         value = float(message.text) if message.text is not None else 0.0
-        user_id = message.from_user.id if message.from_user.id is not None else 0
+        user_id = message.from_user.id if message.from_user and message.from_user.id is not None else 0
 
         # Получаем сохраненные данные
         data = await state.get_data()

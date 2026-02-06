@@ -31,6 +31,9 @@ async def main() -> None:
     # Настройка логирования
     logging.basicConfig(level=getattr(logging, settings.log_min_level.upper(), logging.INFO))
 
+    # Инициализация логгера
+    logger = logging.getLogger(__name__)
+
     # Инициализация бота
     bot = Bot(token=settings.bot_token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
 
@@ -43,7 +46,6 @@ async def main() -> None:
     # Проверяем режим работы: development или production
     if settings.app_env.lower() == "development":
         # Режим разработки - запуск с polling
-        logger = logging.getLogger(__name__)
         logger.info("Запуск бота в режиме разработки (polling)...")
 
         # Инициализация базы данных

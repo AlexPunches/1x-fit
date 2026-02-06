@@ -19,7 +19,7 @@ router = Router()
 @router.message(Command("progress"))
 async def cmd_progress(message: Message) -> None:
     """Обработка команды /progress - отображение прогресса."""
-    user_id = message.from_user.id if message.from_user.id is not None else 0
+    user_id = message.from_user.id if message.from_user and message.from_user.id is not None else 0
 
     # Проверяем, зарегистрирован ли пользователь
     conn = sqlite3.connect(DATABASE_PATH)
@@ -88,7 +88,7 @@ async def cmd_progress(message: Message) -> None:
 @router.message(Command("chart"))
 async def cmd_chart(message: Message) -> None:
     """Обработка команды /chart - отображение графика прогресса."""
-    user_id = message.from_user.id if message.from_user.id is not None else 0
+    user_id = message.from_user.id if message.from_user and message.from_user.id is not None else 0
 
     # Проверяем, зарегистрирован ли пользователь
     conn = sqlite3.connect(DATABASE_PATH)
@@ -133,7 +133,7 @@ async def cmd_chart(message: Message) -> None:
 @router.message(Command("activity_chart"))
 async def cmd_activity_chart(message: Message) -> None:
     """Обработка команды /activity_chart - отображение графика активности."""
-    user_id = message.from_user.id if message.from_user.id is not None else 0
+    user_id = message.from_user.id if message.from_user and message.from_user.id is not None else 0
 
     # Проверяем, зарегистрирован ли пользователь
     conn = sqlite3.connect(DATABASE_PATH)
@@ -169,7 +169,7 @@ async def cmd_activity_chart(message: Message) -> None:
 @router.message(Command("activities"))
 async def cmd_activities(message: Message) -> None:
     """Обработка команды /activities - отображение статистики активности."""
-    user_id = message.from_user.id if message.from_user.id is not None else 0
+    user_id = message.from_user.id if message.from_user and message.from_user.id is not None else 0
 
     # Проверяем, зарегистрирован ли пользователь
     conn = sqlite3.connect(DATABASE_PATH)
