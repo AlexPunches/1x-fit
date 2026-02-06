@@ -68,7 +68,8 @@ async def main() -> None:
         # Установка webhook
         # Если используется самоподписной сертификат, нужно передать его в Telegram
         # см. инструкции в nginx/ssl_setup_instructions.md
-        await bot.set_webhook(webhook_url)
+        if webhook_url:
+            await bot.set_webhook(webhook_url)
 
         # Настройка веб-приложения
         app = web.Application()

@@ -64,7 +64,7 @@ async def process_gender(message: Message, state: FSMContext) -> None:
     gender = message.text.strip().upper() if message.text is not None else ""
 
     if gender not in ["М", "Ж", "M", "F"]:
-        await message.answer(msg.INVALID_GENDER_S.format("М", "Ж"))
+        await message.answer(msg.INVALID_GENDER_SS.format("М", "Ж"))
         return
 
     # Преобразуем в формат базы данных

@@ -91,7 +91,7 @@ async def process_weight_input(message: Message) -> None:
                 height=height,
                 target_weight=target_weight,
                 user_id=user_id,
-                db_path=DATABASE_PATH,
+                db_path=str(DATABASE_PATH),
             )
             progress_score = calculate_final_score(params)
 
