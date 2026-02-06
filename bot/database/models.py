@@ -53,9 +53,9 @@ def init_db() -> None:
     # Заполнение таблицы типов активности по умолчанию
     activities_defaults = [
         ("walking", "steps", 0.04, "Ходьба (шаги)"),
-        ("running", "minutes", 12.0, "Бег (время в минутах)"),
-        ("cycling", "km", 40.0, "Велосипед (расстояние в км)"),
-        ("cardio", "kcal", 1.0, "Кардио (калории)"),
+        ("running", "minutes", 12.0, "Бег (минуты)"),
+        ("cycling", "km", 40.0, "Велосипед (км)"),
+        ("cardio", "kcal", 1.0, "Кардио (ккал)"),
     ]
 
     for activity in activities_defaults:
