@@ -11,6 +11,7 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import KeyboardButton, Message, ReplyKeyboardMarkup
 from database.models import DATABASE_PATH
 from utils.calculations import ScoreCalculationParams, calculate_final_score
+import utils.messages as msg
 
 logger = logging.getLogger(__name__)
 
@@ -36,7 +37,7 @@ async def cmd_weight(message: Message) -> None:
 
     conn.close()
 
-    await message.answer("Пожалуйста, введи свой текущий вес в килограммах:")
+    await message.answer(msg.WEIGHT_INPUT_REQUEST)
 
 
 @router.message(F.text.func(lambda x: x.replace(".", "", 1).isdigit()), StateFilter(None))
@@ -57,7 +58,7 @@ async def process_weight_input(message: Message) -> None:
         if weight < min_weight or weight > max_weight:
             user_id_debug = message.from_user.id if message.from_user and message.from_user.id is not None else "unknown"
             logger.debug("Вес %s кг вне допустимого диапазона для пользователя %s", weight, user_id_debug)
-            await message.answer(f"Вес должен быть от {min_weight} до {max_weight} кг. Введи снова:")
+            await message.answer(msg.INVALID_WEIGHT_RANGE_SS.format(min_weight, max_weight))
             return
 
         user_id = message.from_user.id if message.from_user and message.from_user.id is not None else 0
@@ -122,13 +123,13 @@ async def process_weight_input(message: Message) -> None:
             weight_change = start_weight - weight
 
             if weight_change > 0:
-                await message.answer(f"✅ Вес сохранен: {weight} кг\nТы сбросил {abs(weight_change):.2f} кг")
+                await message.answer(msg.WEIGHT_LOST_SS.format(weight, abs(weight_change)))
             elif weight_change < 0:
-                await message.answer(f"⚠️ Вес сохранен: {weight} кг\nТы набрал {abs(weight_change):.2f} кг")
+                await message.answer(msg.WEIGHT_GAINED_SS.format(weight, abs(weight_change)))
             else:
-                await message.answer(f"✅ Вес сохранен: {weight} кг\nВес не изменился")
+                await message.answer(msg.WEIGHT_UNCHANGED_S.format(weight))
         else:
-            await message.answer(f"✅ Вес сохранен: {weight} кг")
+            await message.answer(msg.WEIGHT_SAVED_S.format(weight))
 
     except ValueError:
         # Если текст не является числом, не обрабатываем как вес
@@ -212,7 +213,7 @@ async def process_activity_type_selection(message: Message, state: FSMContext) -
     conn.close()
 
     # Запрашиваем значение активности
-    await message.answer(f"Теперь введи значение активности '{activity_description}' в {unit}:")
+    await message.answer(msg.ACTIVITY_VALUE_REQUEST_S.format(activity_description, unit))
 
     # Переходим к следующему состоянию
     await state.set_state(ActivityStates.waiting_for_value)
