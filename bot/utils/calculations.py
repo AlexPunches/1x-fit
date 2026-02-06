@@ -167,7 +167,7 @@ def calculate_final_score(params: ScoreCalculationParams) -> float:
     base_score = (bmi_based_score * 0.6) + (percentage_based_score * 0.4)
 
     # Если указаны user_id и db_path, добавляем бонус за активности
-    activity_bonus = 0
+    activity_bonus: float = 0.0
     if user_id is not None and db_path is not None:
         # Получаем сожженные калории за последний день
         daily_calories = calculate_calories_from_activities(user_id, db_path, days=1)

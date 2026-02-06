@@ -44,7 +44,7 @@ async def cmd_start(message: Message, state: FSMContext) -> None:
 @router.message(RegistrationStates.waiting_for_username)
 async def process_username(message: Message, state: FSMContext) -> None:
     """Обработка ввода ника."""
-    username = message.text.strip()
+    username = message.text.strip() if message.text is not None else ""
 
     if len(username) < USERNAME_MIN_LENGTH or len(username) > USERNAME_MAX_LENGTH:
         await message.answer(f"Ник должен быть длиной от {USERNAME_MIN_LENGTH} до {USERNAME_MAX_LENGTH} символов. Введи снова:")
@@ -60,7 +60,7 @@ async def process_username(message: Message, state: FSMContext) -> None:
 @router.message(RegistrationStates.waiting_for_gender)
 async def process_gender(message: Message, state: FSMContext) -> None:
     """Обработка ввода пола."""
-    gender = message.text.strip().upper()
+    gender = message.text.strip().upper() if message.text is not None else ""
 
     if gender not in ["М", "Ж", "M", "F"]:
         await message.answer("Пожалуйста, укажи пол: М (мужской) или Ж (женский):")
@@ -78,7 +78,7 @@ async def process_gender(message: Message, state: FSMContext) -> None:
 async def process_age(message: Message, state: FSMContext) -> None:
     """Обработка ввода возраста."""
     try:
-        age = int(message.text.strip())
+        age = int(message.text.strip()) if message.text is not None else 0
 
         if age < AGE_MIN_VALUE or age > AGE_MAX_VALUE:
             await message.answer(f"Возраст должен быть от {AGE_MIN_VALUE} до {AGE_MAX_VALUE} лет. Введи снова:")
@@ -96,7 +96,7 @@ async def process_age(message: Message, state: FSMContext) -> None:
 async def process_height(message: Message, state: FSMContext) -> None:
     """Обработка ввода роста."""
     try:
-        height = float(message.text.strip())
+        height = float(message.text.strip()) if message.text is not None else 0.0
 
         if height < HEIGHT_MIN_VALUE or height > HEIGHT_MAX_VALUE:
             await message.answer(f"Рост должен быть от {HEIGHT_MIN_VALUE} до {HEIGHT_MAX_VALUE} см. Введи снова:")
@@ -114,7 +114,7 @@ async def process_height(message: Message, state: FSMContext) -> None:
 async def process_start_weight(message: Message, state: FSMContext) -> None:
     """Обработка ввода стартового веса."""
     try:
-        start_weight = float(message.text.strip())
+        start_weight = float(message.text.strip()) if message.text is not None else 0.0
 
         if start_weight < WEIGHT_MIN_VALUE or start_weight > WEIGHT_MAX_VALUE:
             await message.answer(f"Вес должен быть от {WEIGHT_MIN_VALUE} до {WEIGHT_MAX_VALUE} кг. Введи снова:")
@@ -132,7 +132,7 @@ async def process_start_weight(message: Message, state: FSMContext) -> None:
 async def process_target_weight(message: Message, state: FSMContext) -> None:
     """Обработка ввода целевого веса."""
     try:
-        target_weight = float(message.text.strip())
+        target_weight = float(message.text.strip()) if message.text is not None else 0.0
         data = await state.get_data()
         start_weight = data["start_weight"]
 
