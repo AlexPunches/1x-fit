@@ -71,7 +71,7 @@ async def process_gender(message: Message, state: FSMContext) -> None:
     gender_db = "M" if gender in ["М", "M"] else "F"
 
     await state.update_data(gender=gender_db)
-    await message.answer("Теперь введи свой возраст:")
+    await message.answer(msg.AGE_REQUEST)
     await state.set_state(RegistrationStates.waiting_for_age)
 
 
@@ -90,7 +90,7 @@ async def process_age(message: Message, state: FSMContext) -> None:
         await state.set_state(RegistrationStates.waiting_for_height)
 
     except ValueError:
-        await message.answer("Пожалуйста, введи корректный возраст:")
+        await message.answer(msg.INVALID_AGE_INPUT)
 
 
 @router.message(RegistrationStates.waiting_for_height)
@@ -108,7 +108,7 @@ async def process_height(message: Message, state: FSMContext) -> None:
         await state.set_state(RegistrationStates.waiting_for_start_weight)
 
     except ValueError:
-        await message.answer("Пожалуйста, введи корректный рост:")
+        await message.answer(msg.INVALID_HEIGHT_INPUT)
 
 
 @router.message(RegistrationStates.waiting_for_start_weight)
@@ -122,11 +122,11 @@ async def process_start_weight(message: Message, state: FSMContext) -> None:
             return
 
         await state.update_data(start_weight=start_weight)
-        await message.answer("Теперь введи свой целевой вес в килограммах:")
+        await message.answer(msg.TARGET_WEIGHT_REQUEST_EXTRA)
         await state.set_state(RegistrationStates.waiting_for_target_weight)
 
     except ValueError:
-        await message.answer("Пожалуйста, введи корректный стартовый вес:")
+        await message.answer(msg.INVALID_START_WEIGHT_INPUT)
 
 
 @router.message(RegistrationStates.waiting_for_target_weight)
@@ -183,4 +183,4 @@ async def process_target_weight(message: Message, state: FSMContext) -> None:
         await state.clear()
 
     except ValueError:
-        await message.answer("Пожалуйста, введи корректный целевой вес:")
+        await message.answer(msg.INVALID_TARGET_WEIGHT_INPUT)

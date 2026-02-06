@@ -44,12 +44,12 @@ async def cmd_weight(message: Message) -> None:
 async def process_weight_input(message: Message) -> None:
     """Обработка ввода веса."""
     user_id_debug = message.from_user.id if message.from_user and message.from_user.id is not None else "unknown"
-    logger.debug("Получено числовое сообщение: %s от пользователя %s", message.text, user_id_debug)
+    logger.debug(msg.LOG_RECEIVED_NUMERIC_MESSAGE_SS, message.text, user_id_debug)
 
     try:
         weight = float(message.text) if message.text is not None else 0.0
         user_id_debug = message.from_user.id if message.from_user and message.from_user.id is not None else "unknown"
-        logger.debug("Обнаружен вес: %s кг для пользователя %s", weight, user_id_debug)
+        logger.debug(msg.LOG_DETECTED_WEIGHT_SS, weight, user_id_debug)
 
         # Используем константы вместо магических чисел
         min_weight = 30
@@ -57,7 +57,7 @@ async def process_weight_input(message: Message) -> None:
 
         if weight < min_weight or weight > max_weight:
             user_id_debug = message.from_user.id if message.from_user and message.from_user.id is not None else "unknown"
-            logger.debug("Вес %s кг вне допустимого диапазона для пользователя %s", weight, user_id_debug)
+            logger.debug(msg.LOG_WEIGHT_OUT_OF_RANGE_SS, weight, user_id_debug)
             await message.answer(msg.INVALID_WEIGHT_RANGE_SS.format(min_weight, max_weight))
             return
 
@@ -103,7 +103,7 @@ async def process_weight_input(message: Message) -> None:
 
         conn.commit()
         conn.close()
-        logger.debug("Вес %s кг успешно сохранен для пользователя %s", weight, user_id)
+        logger.debug(msg.LOG_WEIGHT_SAVED_SS, weight, user_id)
 
         # Рассчитываем изменение веса
         conn = sqlite3.connect(DATABASE_PATH)
@@ -223,7 +223,7 @@ async def process_activity_type_selection(message: Message, state: FSMContext) -
 async def process_activity_value(message: Message, state: FSMContext) -> None:
     """Обработка ввода значения активности."""
     user_id_debug = message.from_user.id if message.from_user and message.from_user.id is not None else "unknown"
-    logger.debug("Получено значение активности: %s от пользователя %s", message.text, user_id_debug)
+    logger.debug(msg.LOG_RECEIVED_ACTIVITY_VALUE_SS, message.text, user_id_debug)
 
     try:
         value = float(message.text) if message.text is not None else 0.0
@@ -246,19 +246,19 @@ async def process_activity_value(message: Message, state: FSMContext) -> None:
 
         if activity_name == "walking" and (value < 0 or value > max_steps):
             logger.debug("Значение %s вне диапазона для ходьбы", value)
-            await message.answer(f"Количество шагов должно быть от 0 до {max_steps}. Введи снова:")
+            await message.answer(msg.INVALID_STEPS_RANGE_SS.format(0, max_steps))
             return
         if activity_name == "running" and (value < 0 or value > max_running_minutes):  # до 5 часов
             logger.debug("Значение %s вне диапазона для бега", value)
-            await message.answer(f"Время бега должно быть от 0 до {max_running_minutes} минут. Введи снова:")
+            await message.answer(msg.INVALID_RUNNING_RANGE_SS.format(0, max_running_minutes))
             return
         if activity_name == "cycling" and (value < 0 or value > max_cycling_km):  # до 200 км
             logger.debug("Значение %s вне диапазона для велосипеда", value)
-            await message.answer(f"Расстояние на велосипеде должно быть от 0 до {max_cycling_km} км. Введи снова:")
+            await message.answer(msg.INVALID_CYCLING_RANGE_SS.format(0, max_cycling_km))
             return
         if activity_name == "cardio" and (value < 0 or value > max_cardio_kcal):  # до 2000 ккал
             logger.debug("Значение %s вне диапазона для кардио", value)
-            await message.answer(f"Количество калорий должно быть от 0 до {max_cardio_kcal}. Введи снова:")
+            await message.answer(msg.INVALID_CARDIO_RANGE_SS.format(0, max_cardio_kcal))
             return
 
         # Сохраняем активность в базу
@@ -286,11 +286,11 @@ async def process_activity_value(message: Message, state: FSMContext) -> None:
 
         # Отправляем подтверждение
         if calories:
-            await message.answer(f"✅ Активность '{activity_name}' сохранена: {value} {unit}\nСожжено калорий: {calories:.2f}")
+            await message.answer(msg.ACTIVITY_SAVED_WITH_CALORIES_SS.format(activity_name, value, unit, calories))
         else:
-            await message.answer(f"✅ Активность '{activity_name}' сохранена: {value} {unit}")
+            await message.answer(msg.ACTIVITY_SAVED_S.format(activity_name, value, unit, 0))
 
-        logger.debug("Активность успешно сохранена для пользователя %s", user_id)
+        logger.debug(msg.LOG_ACTIVITY_SAVED_SS, activity_name, user_id)
 
         # Сбрасываем состояние
         await state.clear()

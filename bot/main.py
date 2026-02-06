@@ -12,6 +12,7 @@ from database.models import init_db
 from handlers import setup_handlers
 from handlers.notifications import scheduler
 from settings import settings
+import utils.messages as msg
 
 
 async def on_startup(app: web.Application) -> None:
@@ -46,7 +47,7 @@ async def main() -> None:
     # Проверяем режим работы: development или production
     if settings.app_env.lower() == "development":
         # Режим разработки - запуск с polling
-        logger.info("Запуск бота в режиме разработки (polling)...")
+        logger.info(msg.BOT_STARTUP_DEV_MODE)
 
         # Инициализация базы данных
         init_db()
@@ -98,13 +99,13 @@ async def main() -> None:
         site = web.TCPSite(runner, host, port)
         await site.start()
 
-        logger.info("Бот запущен на %s:%s", host, port)
+        logger.info(msg.BOT_STARTED_ON_HOST_PORT_SS, host, port)
 
         # Бесконечный цикл
         try:
             await asyncio.sleep(float("inf"))
         except (KeyboardInterrupt, SystemExit):
-            logger.warning("Shutting down...")
+            logger.warning(msg.SHUTTING_DOWN)
         finally:
             # Остановка планировщика при завершении работы
             scheduler.stop_scheduler()

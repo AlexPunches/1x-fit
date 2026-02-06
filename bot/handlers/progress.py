@@ -12,6 +12,7 @@ from utils.visualization import (
     create_individual_chart,
     create_total_activity_chart,
 )
+import utils.messages as msg
 
 router = Router()
 
@@ -29,7 +30,7 @@ async def cmd_progress(message: Message) -> None:
     user_exists = cursor.fetchone()
 
     if not user_exists:
-        await message.answer("Сначала необходимо зарегистрироваться. Используй команду /start")
+        await message.answer(msg.NOT_REGISTERED)
         conn.close()
         return
 
@@ -58,28 +59,23 @@ async def cmd_progress(message: Message) -> None:
         last_weight, last_date = last_weight_record
         weight_change = start_weight - last_weight
 
-        # Отправляем информацию о прогрессе
-        progress_info = f"📊 Прогресс участника {username}:\n\n"
-        progress_info += f"📈 Стартовый вес: {start_weight} кг\n"
-        progress_info += f"📉 Текущий вес: {last_weight} кг\n"
-        progress_info += f"🎯 Целевой вес: {target_weight} кг\n\n"
-
+        # Формируем текст изменения веса
         if weight_change > 0:
-            progress_info += f"✅ Сброшено: {weight_change:.2f} кг\n"
+            change_text = msg.PROGRESS_WEIGHT_LOST_TEXT_S.format(weight_change)
         elif weight_change < 0:
-            progress_info += f"⚠️ Набрано: {abs(weight_change):.2f} кг\n"
+            change_text = msg.PROGRESS_WEIGHT_GAINED_TEXT_S.format(abs(weight_change))
         else:
-            progress_info += "➡️ Вес не изменился\n"
+            change_text = msg.PROGRESS_NO_CHANGE
 
-        progress_info += f"\n📅 Последнее обновление: {last_date}"
-
+        # Отправляем информацию о прогрессе
+        progress_info = msg.PROGRESS_INFO_WITH_CHANGE_SSSSS.format(
+            username, start_weight, last_weight, target_weight, 
+            change_text, "", last_date
+        )
         await message.answer(progress_info)
     else:
         await message.answer(
-            f"📊 Прогресс участника {username}:\n\n"
-            f"📈 Стартовый вес: {start_weight} кг\n"
-            f"🎯 Целевой вес: {target_weight} кг\n\n"
-            f"ℹ️ Пока нет записей о текущем весе. Используй команду /weight, чтобы добавить.",
+            msg.PROGRESS_INFO_NO_RECORDS_SS.format(username, start_weight, target_weight)
         )
 
     conn.close()
@@ -103,7 +99,7 @@ async def cmd_chart(message: Message) -> None:
     user_data_row = cursor.fetchone()
 
     if not user_data_row:
-        await message.answer("Сначала необходимо зарегистрироваться. Используй команду /start")
+        await message.answer(msg.NOT_REGISTERED)
         conn.close()
         return
 
@@ -124,10 +120,10 @@ async def cmd_chart(message: Message) -> None:
         # Отправляем график пользователю
         await message.answer_photo(
             photo=FSInputFile(chart_path),
-            caption="📊 Твой индивидуальный график прогресса",
+            caption=msg.CHART_CAPTION,
         )
     else:
-        await message.answer("❌ Недостаточно данных для построения графика")
+        await message.answer(msg.CHART_NO_DATA)
 
 
 @router.message(Command("activity_chart"))
@@ -147,7 +143,7 @@ async def cmd_activity_chart(message: Message) -> None:
     user_exists = cursor.fetchone()
 
     if not user_exists:
-        await message.answer("Сначала необходимо зарегистрироваться. Используй команду /start")
+        await message.answer(msg.NOT_REGISTERED)
         conn.close()
         return
 
@@ -160,10 +156,10 @@ async def cmd_activity_chart(message: Message) -> None:
         # Отправляем график пользователю
         await message.answer_photo(
             photo=FSInputFile(chart_path),
-            caption="📊 Твой график активности за последние 30 дней",
+            caption=msg.ACTIVITY_CHART_CAPTION,
         )
     else:
-        await message.answer("❌ Недостаточно данных для построения графика активности")
+        await message.answer(msg.ACTIVITY_CHART_NO_DATA)
 
 
 @router.message(Command("activities"))
@@ -179,7 +175,7 @@ async def cmd_activities(message: Message) -> None:
     user_exists = cursor.fetchone()
 
     if not user_exists:
-        await message.answer("Сначала необходимо зарегистрироваться. Используй команду /start")
+        await message.answer(msg.NOT_REGISTERED)
         conn.close()
         return
 

@@ -8,6 +8,7 @@ from aiogram import Bot, Router
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from database.models import DATABASE_PATH
 from settings import settings
+import utils.messages as msg
 
 # Создаем роутер для уведомлений
 router = Router()
@@ -63,7 +64,7 @@ class NotificationScheduler:
             try:
                 await self.bot.send_message(
                     chat_id=user_id,
-                    text="⏰ Привет! Пожалуйста, введи свой сегодняшний вес в килограммах. Используй команду /weight или просто пришли число.",
+                    text=msg.WEIGHT_REMINDER,
                 )
             except Exception:
                 logger = logging.getLogger(__name__)
@@ -85,7 +86,7 @@ class NotificationScheduler:
             try:
                 await self.bot.send_message(
                     chat_id=user_id,
-                    text="⏰ Не забудь ввести сегодняшнюю активность! Пожалуйста, используй команду /activity, чтобы ввести данные о своей активности за сегодня.",
+                    text=msg.ACTIVITY_REMINDER,
                 )
             except Exception:
                 logger = logging.getLogger(__name__)
