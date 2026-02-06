@@ -47,14 +47,16 @@ async def process_weight_input(message: Message) -> None:
 
     try:
         weight = float(message.text) if message.text is not None else 0.0
-        logger.debug("Обнаружен вес: %s кг для пользователя %s", weight, message.from_user.id)
+        user_id_debug = message.from_user.id if message.from_user and message.from_user.id is not None else "unknown"
+        logger.debug("Обнаружен вес: %s кг для пользователя %s", weight, user_id_debug)
 
         # Используем константы вместо магических чисел
         min_weight = 30
         max_weight = 300
 
         if weight < min_weight or weight > max_weight:
-            logger.debug("Вес %s кг вне допустимого диапазона для пользователя %s", weight, message.from_user.id)
+            user_id_debug = message.from_user.id if message.from_user and message.from_user.id is not None else "unknown"
+            logger.debug("Вес %s кг вне допустимого диапазона для пользователя %s", weight, user_id_debug)
             await message.answer(f"Вес должен быть от {min_weight} до {max_weight} кг. Введи снова:")
             return
 
@@ -219,7 +221,8 @@ async def process_activity_type_selection(message: Message, state: FSMContext) -
 @router.message(ActivityStates.waiting_for_value)
 async def process_activity_value(message: Message, state: FSMContext) -> None:
     """Обработка ввода значения активности."""
-    logger.debug("Получено значение активности: %s от пользователя %s", message.text, message.from_user.id)
+    user_id_debug = message.from_user.id if message.from_user and message.from_user.id is not None else "unknown"
+    logger.debug("Получено значение активности: %s от пользователя %s", message.text, user_id_debug)
 
     try:
         value = float(message.text) if message.text is not None else 0.0

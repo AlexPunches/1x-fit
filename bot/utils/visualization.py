@@ -2,6 +2,7 @@ import sqlite3
 from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
+import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import numpy as np
 from database.models import DATABASE_PATH
@@ -51,8 +52,9 @@ def create_individual_chart(user_id: int, user_data: dict) -> str | None:
     # Создаем график
     _fig, ax1 = plt.subplots(figsize=(12, 8))
 
-    # Основной график - вес
-    ax1.plot(dates, weights, "o-", label="Вес", color="blue")
+    # Преобразуем даты в формат, понятный matplotlib
+    numeric_dates = mdates.date2num(dates)
+    ax1.plot(numeric_dates, weights, "o-", label="Вес", color="blue")
     ax1.set_xlabel("Дата")
     ax1.set_ylabel("Вес (кг)", color="blue")
     ax1.tick_params(axis="y", labelcolor="blue")
@@ -68,7 +70,7 @@ def create_individual_chart(user_id: int, user_data: dict) -> str | None:
 
     # Создаем вторую ось для прогресса
     ax2 = ax1.twinx()
-    ax2.plot(dates, progress_points, "s-", label="Прогресс", color="orange")
+    ax2.plot(numeric_dates, progress_points, "s-", label="Прогресс", color="orange")
     ax2.set_ylabel("Прогресс (усл. ед.)", color="orange")
     ax2.tick_params(axis="y", labelcolor="orange")
 
@@ -80,7 +82,9 @@ def create_individual_chart(user_id: int, user_data: dict) -> str | None:
     # Настраиваем заголовок
     plt.title(f'Прогресс участника {user_data["username"]}')
 
-    # Поворачиваем подписи дат для лучшего отображения
+    # Форматируем ось X для отображения дат
+    ax1.xaxis.set_major_formatter(mdates.DateFormatter("%d.%m.%Y"))
+    ax1.xaxis.set_major_locator(mdates.DayLocator(interval=2))  # Показываем каждую 2-ю дату, чтобы не было перегрузки
     plt.xticks(rotation=45)
 
     # Сохраняем график
@@ -164,7 +168,9 @@ def create_activity_chart(user_id: int) -> str | None:
     # Настраиваем заголовок
     plt.title(f"Активность участника (ID: {user_id}) за последние 30 дней")
 
-    # Поворачиваем подписи дат для лучшего отображения
+    # Форматируем ось X для отображения дат
+    ax.xaxis.set_major_formatter(mdates.DateFormatter("%d.%m.%Y"))
+    ax.xaxis.set_major_locator(mdates.DayLocator(interval=2))  # Показываем каждую 2-ю дату, чтобы не было перегрузки
     plt.xticks(rotation=45)
 
     # Сохраняем график

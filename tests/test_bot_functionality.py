@@ -17,14 +17,15 @@ from bot.settings import settings
 async def test_cmd_test():
     """Тест команды /test"""
     # Создаем mock сообщение
+    from datetime import datetime
+    from aiogram.types import Chat
+    
     user = User(id=123456789, is_bot=False, first_name="Test", username="testuser")
-    message = Message(
-        message_id=1,
-        date=1234567890,
-        chat={"id": 123456789, "type": "private"},
-        from_user=user,
-        text="/test"
-    )
+    from unittest.mock import MagicMock
+    
+    message = MagicMock()
+    message.from_user = user
+    message.text = "/test"
     message.answer = AsyncMock()
     
     # Вызываем команду
@@ -54,7 +55,6 @@ def test_app_env_setting():
     
     # Возвращаем значение по умолчанию
     del os.environ["APP_ENV"]
-    settings.app_env = "production"
 
 
 if __name__ == "__main__":
