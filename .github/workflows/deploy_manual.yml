@@ -97,6 +97,37 @@ jobs:
             docker rm 1x-fit-postgres || true
           fi
 
+    - name: Deploy Bot
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.VM_HOST }}
+        username: ${{ secrets.VM_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          # Запуск основного контейнера бота
+          docker run -d \
+            --name 1x-fit-bot \
+            --network datalens_default \
+            --env BOT_TOKEN=${{ secrets.BOT_TOKEN }} \
+            --env ADMIN_ID=${{ secrets.ADMIN_ID }} \
+            --env WEBHOOK_URL=${{ secrets.WEBHOOK_URL }} \
+            --env HOST=${{ secrets.HOST }} \
+            --env PORT=${{ secrets.PORT }} \
+            --env WEIGHT_NOTIFICATION_TIME=${{ secrets.WEIGHT_NOTIFICATION_TIME }} \
+            --env ACTIVITY_NOTIFICATION_TIME=${{ secrets.ACTIVITY_NOTIFICATION_TIME }} \
+            --env DATABASE_PATH=${{ secrets.DATABASE_PATH }} \
+            --env CHARTS_DIR=${{ secrets.CHARTS_DIR }} \
+            --env APP_ENV=${{ secrets.APP_ENV }} \
+            --env LOG_MIN_LEVEL=${{ secrets.LOG_MIN_LEVEL }} \
+            --env ANAL_POSTGRES_DB=${{ secrets.ANAL_POSTGRES_DB }} \
+            --env ANAL_POSTGRES_USER=${{ secrets.ANAL_POSTGRES_USER }} \
+            --env ANAL_POSTGRES_PASSWORD=${{ secrets.ANAL_POSTGRES_PASSWORD }} \
+            -p 8000:8000 \
+            --volume bot-db-data:/app/data \
+            --volume bot-charts-data:/app/charts \
+            --restart unless-stopped \
+            ${{ secrets.DOCKERHUB_USERNAME }}/1x-fit:$IMAGE_TAG
+
     - name: Deploy PostgreSQL
       uses: appleboy/ssh-action@v1.0.0
       with:
@@ -130,37 +161,6 @@ jobs:
             echo "Ошибка: сеть datalens_default не найдена. Убедитесь, что datalens запущен."
             exit 1
           fi
-
-    - name: Deploy Bot
-      uses: appleboy/ssh-action@v1.0.0
-      with:
-        host: ${{ secrets.VM_HOST }}
-        username: ${{ secrets.VM_USER }}
-        key: ${{ secrets.SSH_PRIVATE_KEY }}
-        script: |
-          # Запуск основного контейнера бота
-          docker run -d \
-            --name 1x-fit-bot \
-            --network datalens_default \
-            --env BOT_TOKEN=${{ secrets.BOT_TOKEN }} \
-            --env ADMIN_ID=${{ secrets.ADMIN_ID }} \
-            --env WEBHOOK_URL=${{ secrets.WEBHOOK_URL }} \
-            --env HOST=${{ secrets.HOST }} \
-            --env PORT=${{ secrets.PORT }} \
-            --env WEIGHT_NOTIFICATION_TIME=${{ secrets.WEIGHT_NOTIFICATION_TIME }} \
-            --env ACTIVITY_NOTIFICATION_TIME=${{ secrets.ACTIVITY_NOTIFICATION_TIME }} \
-            --env DATABASE_PATH=${{ secrets.DATABASE_PATH }} \
-            --env CHARTS_DIR=${{ secrets.CHARTS_DIR }} \
-            --env APP_ENV=${{ secrets.APP_ENV }} \
-            --env LOG_MIN_LEVEL=${{ secrets.LOG_MIN_LEVEL }} \
-            --env ANAL_POSTGRES_DB=${{ secrets.ANAL_POSTGRES_DB }} \
-            --env ANAL_POSTGRES_USER=${{ secrets.ANAL_POSTGRES_USER }} \
-            --env ANAL_POSTGRES_PASSWORD=${{ secrets.ANAL_POSTGRES_PASSWORD }} \
-            -p 8000:8000 \
-            --volume bot-db-data:/app/data \
-            --volume bot-charts-data:/app/charts \
-            --restart unless-stopped \
-            ${{ secrets.DOCKERHUB_USERNAME }}/1x-fit:$IMAGE_TAG
 
     - name: Check deployment status
       uses: appleboy/ssh-action@v1.0.0
