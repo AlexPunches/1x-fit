@@ -40,4 +40,4 @@ class Settings(BaseSettings):
 
 
 # Create a global instance of settings
-settings = Settings(_env_file=".env", _env_file_encoding="utf-8")
+settings = Settings()
