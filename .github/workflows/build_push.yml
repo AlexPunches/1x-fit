@@ -2,10 +2,10 @@ name: Build and Push Docker Image (Automatic)
 
 on:
   push:
-    branches: [ "main", "develop" ]
+    branches: [ "main" ]
     tags: [ "v*" ]
   pull_request:
-    branches: [ "main", "develop" ]
+    branches: [ "main" ]
 
 env:
   REGISTRY: docker.io
