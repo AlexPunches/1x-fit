@@ -1,4 +1,4 @@
-name: Build and Push Docker Image (Automatic)
+name: Build and Push PostgreSQL Docker Image
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
 
 env:
   REGISTRY: docker.io
-  IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/1x-fit
+  IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/1x-fit-postgres
 
 jobs:
   build-and-push:
@@ -43,11 +43,11 @@ jobs:
           type=raw,value=latest,onlatest=true
           type=semver,pattern={{version}}
 
-    - name: Build and push Docker image
+    - name: Build and push PostgreSQL Docker image
       uses: docker/build-push-action@v5
       with:
-        context: ./bot
-        file: ./bot/Dockerfile
+        context: ./docker/postgres
+        file: ./docker/postgres/Dockerfile
         platforms: linux/amd64,linux/arm64
         push: true
         tags: ${{ steps.meta.outputs.tags }}

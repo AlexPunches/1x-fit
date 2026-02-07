@@ -1,4 +1,4 @@
-name: Deploy Bot
+name: Deploy Bot and PostgreSQL
 
 on:
   workflow_dispatch:
@@ -16,6 +16,11 @@ on:
         required: false
         default: 'latest'
         type: string
+      postgres_image_tag:
+        description: 'PostgreSQL Docker image tag to deploy (e.g., latest, main, sha-xxx)'
+        required: false
+        default: 'latest'
+        type: string
       force_recreate:
         description: 'Force recreate containers'
         required: false
@@ -25,6 +30,7 @@ on:
 env:
   REGISTRY: docker.io
   IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/1x-fit
+  POSTGRES_IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/1x-fit-postgres
 
 jobs:
   deploy:
@@ -35,7 +41,7 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v4
 
-    - name: Deploy to VM
+    - name: Prepare bot deployment
       uses: appleboy/ssh-action@v1.0.0
       with:
         host: ${{ secrets.VM_HOST }}
@@ -44,9 +50,6 @@ jobs:
         script: |
           # Создание директории, если не существует
           sudo mkdir -p /opt/1x-fit/
-
-          # Создание файла .env с переменными окружения
-          echo "${{ secrets.BOT_ENV_FILE }}" | base64 -d | sudo tee /opt/1x-fit/.env
 
           # Проверка наличия volume для данных
           docker volume inspect bot-db-data >/dev/null 2>&1 || docker volume create bot-db-data
@@ -58,30 +61,123 @@ jobs:
             IMAGE_TAG="latest"
           fi
 
-          # Обновление образа
+          # Обновление образа бота
           docker pull ${{ secrets.DOCKERHUB_USERNAME }}/1x-fit:$IMAGE_TAG
 
-          # Остановка и удаление старого контейнера
+          # Остановка и удаление старого контейнера бота
           docker stop 1x-fit-bot || true
+          
           if [ "${{ inputs.force_recreate }}" = "true" ]; then
             docker rm 1x-fit-bot || true
           fi
 
-          # Запуск нового контейнера
+    - name: Prepare PostgreSQL deployment
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.VM_HOST }}
+        username: ${{ secrets.VM_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          # Проверка наличия volume для PostgreSQL
+          docker volume inspect anal_postgres-data >/dev/null 2>&1 || docker volume create anal_postgres-data
+
+          # Определение тега образа PostgreSQL для деплоя
+          POSTGRES_IMAGE_TAG="${{ inputs.postgres_image_tag }}"
+          if [ -z "$POSTGRES_IMAGE_TAG" ]; then
+            POSTGRES_IMAGE_TAG="latest"
+          fi
+
+          # Обновление образа PostgreSQL
+          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/1x-fit-postgres:$POSTGRES_IMAGE_TAG
+
+          # Остановка и удаление старого контейнера PostgreSQL
+          docker stop 1x-fit-postgres || true
+          
+          if [ "${{ inputs.force_recreate }}" = "true" ]; then
+            docker rm 1x-fit-postgres || true
+          fi
+
+    - name: Deploy PostgreSQL
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.VM_HOST }}
+        username: ${{ secrets.VM_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          # Запуск PostgreSQL контейнера
+          docker run -d \
+            --name 1x-fit-postgres \
+            --env POSTGRES_PASSWORD=${{ secrets.ANAL_POSTGRES_PASSWORD }} \
+            --env POSTGRES_USER=${{ secrets.ANAL_POSTGRES_USER }} \
+            --env POSTGRES_DB=${{ secrets.ANAL_POSTGRES_DB }} \
+            --volume anal_postgres-data:/var/lib/postgresql/data \
+            -p 50432:50432 \
+            --restart unless-stopped \
+            ${{ secrets.DOCKERHUB_USERNAME }}/1x-fit-postgres:$POSTGRES_IMAGE_TAG
+
+    - name: Connect PostgreSQL to datalens network
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.VM_HOST }}
+        username: ${{ secrets.VM_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          # Проверяем, существует ли сеть datalens_default
+          if docker network ls --format "{{.Name}}" | grep -q "^datalens_default$"; then
+            echo "Сеть datalens_default существует. Подключаю 1x-fit-postgres..."
+            docker network connect datalens_default 1x-fit-postgres
+          else
+            echo "Ошибка: сеть datalens_default не найдена. Убедитесь, что datalens запущен."
+            exit 1
+          fi
+
+    - name: Deploy Bot
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.VM_HOST }}
+        username: ${{ secrets.VM_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          # Запуск основного контейнера бота
           docker run -d \
             --name 1x-fit-bot \
-            --env-file /opt/1x-fit/.env \
+            --network datalens_default \
+            --env BOT_TOKEN=${{ secrets.BOT_TOKEN }} \
+            --env ADMIN_ID=${{ secrets.ADMIN_ID }} \
+            --env WEBHOOK_URL=${{ secrets.WEBHOOK_URL }} \
+            --env HOST=${{ secrets.HOST }} \
+            --env PORT=${{ secrets.PORT }} \
+            --env WEIGHT_NOTIFICATION_TIME=${{ secrets.WEIGHT_NOTIFICATION_TIME }} \
+            --env ACTIVITY_NOTIFICATION_TIME=${{ secrets.ACTIVITY_NOTIFICATION_TIME }} \
+            --env DATABASE_PATH=${{ secrets.DATABASE_PATH }} \
+            --env CHARTS_DIR=${{ secrets.CHARTS_DIR }} \
+            --env APP_ENV=${{ secrets.APP_ENV }} \
+            --env LOG_MIN_LEVEL=${{ secrets.LOG_MIN_LEVEL }} \
+            --env ANAL_POSTGRES_DB=${{ secrets.ANAL_POSTGRES_DB }} \
+            --env ANAL_POSTGRES_USER=${{ secrets.ANAL_POSTGRES_USER }} \
+            --env ANAL_POSTGRES_PASSWORD=${{ secrets.ANAL_POSTGRES_PASSWORD }} \
             -p 8000:8000 \
-            -v bot-db-data:/app/data \
-            -v bot-charts-data:/app/charts \
+            --volume bot-db-data:/app/data \
+            --volume bot-charts-data:/app/charts \
             --restart unless-stopped \
             ${{ secrets.DOCKERHUB_USERNAME }}/1x-fit:$IMAGE_TAG
 
-          # Проверка статуса контейнера
-          sleep 5
-          CONTAINER_STATUS=$(docker ps --filter "name=1x-fit-bot" --format "{{.Status}}")
-          echo "Container status: $CONTAINER_STATUS"
-          
-          # Вывод логов контейнера для диагностики
-          echo "Last 10 lines of container logs:"
+    - name: Check deployment status
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.VM_HOST }}
+        username: ${{ secrets.VM_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          # Проверка статуса контейнеров
+          sleep 10
+          BOT_CONTAINER_STATUS=$(docker ps --filter "name=1x-fit-bot" --format "{{.Status}}")
+          POSTGRES_CONTAINER_STATUS=$(docker ps --filter "name=1x-fit-postgres" --format "{{.Status}}")
+          echo "Bot container status: $BOT_CONTAINER_STATUS"
+          echo "PostgreSQL container status: $POSTGRES_CONTAINER_STATUS"
+
+          # Вывод логов контейнеров для диагностики
+          echo "Last 10 lines of bot container logs:"
           docker logs 1x-fit-bot --tail 10
+          echo "Last 10 lines of PostgreSQL container logs:"
+          docker logs 1x-fit-postgres --tail 10
