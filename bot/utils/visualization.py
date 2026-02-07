@@ -1,15 +1,17 @@
-import os
 import sqlite3
-from datetime import datetime, timedelta
+from datetime import UTC, datetime, timedelta
+from pathlib import Path
 
+import matplotlib.dates as mdates
 import matplotlib.pyplot as plt
 import numpy as np
 from database.models import DATABASE_PATH
 from settings import settings
 
 
-def create_individual_chart(user_id, user_data):
-    """Создает индивидуальный график прогресса для одного участника
+def create_individual_chart(user_id: int, user_data: dict) -> str | None:
+    """Создает индивидуальный график прогресса для одного участника.
+
     :param user_id: ID пользователя
     :param user_data: данные пользователя
     :return: путь к файлу графика
@@ -37,21 +39,22 @@ def create_individual_chart(user_id, user_data):
         ORDER BY ar.record_date
     """, (user_id,))
 
-    activity_records = cursor.fetchall()
+    cursor.fetchall()  # Не используется
     conn.close()
 
     if not records:
         return None
 
-    dates = [datetime.strptime(record[1], "%Y-%m-%d %H:%M:%S") for record in records]
+    dates = [datetime.strptime(record[1], "%Y-%m-%d %H:%M:%S").replace(tzinfo=UTC) for record in records]
     weights = [record[0] for record in records]
     progress_points = [record[2] if record[2] is not None else 0 for record in records]
 
     # Создаем график
-    fig, ax1 = plt.subplots(figsize=(12, 8))
+    _fig, ax1 = plt.subplots(figsize=(12, 8))
 
-    # Основной график - вес
-    ax1.plot(dates, weights, "o-", label="Вес", color="blue")
+    # Преобразуем даты в формат, понятный matplotlib
+    numeric_dates = mdates.date2num(dates)
+    ax1.plot(numeric_dates, weights, "o-", label="Вес", color="blue")
     ax1.set_xlabel("Дата")
     ax1.set_ylabel("Вес (кг)", color="blue")
     ax1.tick_params(axis="y", labelcolor="blue")
@@ -63,11 +66,11 @@ def create_individual_chart(user_id, user_data):
     ax1.axhline(y=target_weight, color="green", linestyle="--", label=f"Цель: {target_weight}кг")
 
     # Добавляем сетку
-    ax1.grid(True, linestyle="--", alpha=0.6)
+    ax1.grid(b=True, linestyle="--", alpha=0.6)
 
     # Создаем вторую ось для прогресса
     ax2 = ax1.twinx()
-    ax2.plot(dates, progress_points, "s-", label="Прогресс", color="orange")
+    ax2.plot(numeric_dates, progress_points, "s-", label="Прогресс", color="orange")
     ax2.set_ylabel("Прогресс (усл. ед.)", color="orange")
     ax2.tick_params(axis="y", labelcolor="orange")
 
@@ -79,12 +82,14 @@ def create_individual_chart(user_id, user_data):
     # Настраиваем заголовок
     plt.title(f'Прогресс участника {user_data["username"]}')
 
-    # Поворачиваем подписи дат для лучшего отображения
+    # Форматируем ось X для отображения дат
+    ax1.xaxis.set_major_formatter(mdates.DateFormatter("%d.%m.%Y"))
+    ax1.xaxis.set_major_locator(mdates.DayLocator(interval=2))  # Показываем каждую 2-ю дату, чтобы не было перегрузки
     plt.xticks(rotation=45)
 
     # Сохраняем график
-    os.makedirs(settings.charts_dir, exist_ok=True)
-    filename = f"{settings.charts_dir}individual_{user_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+    Path(settings.charts_dir).mkdir(parents=True, exist_ok=True)
+    filename = f"{settings.charts_dir}individual_{user_id}_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.png"
     plt.tight_layout()
     plt.savefig(filename)
     plt.close()
@@ -92,8 +97,9 @@ def create_individual_chart(user_id, user_data):
     return filename
 
 
-def create_activity_chart(user_id):
-    """Создает график активности для одного участника
+def create_activity_chart(user_id: int) -> str | None:
+    """Создает график активности для одного участника.
+
     :param user_id: ID пользователя
     :return: путь к файлу графика
     """
@@ -102,7 +108,7 @@ def create_activity_chart(user_id):
     cursor = conn.cursor()
 
     # Получаем данные об активности за последние 30 дней
-    thirty_days_ago = (datetime.now() - timedelta(days=30)).strftime("%Y-%m-%d")
+    thirty_days_ago = (datetime.now(UTC) - timedelta(days=30)).strftime("%Y-%m-%d")
 
     cursor.execute("""
         SELECT ar.value, ar.record_date, at.name, at.unit, ar.calories
@@ -119,18 +125,17 @@ def create_activity_chart(user_id):
         return None
 
     # Подготовка данных
-    dates = [datetime.strptime(record[1].split()[0], "%Y-%m-%d") for record in activity_records]
+    dates = [datetime.strptime(record[1].split()[0], "%Y-%m-%d").replace(tzinfo=UTC) for record in activity_records]
     values = [record[0] for record in activity_records]
     activity_names = [record[2] for record in activity_records]
-    units = [record[3] for record in activity_records]
     calories = [record[4] if record[4] is not None else 0 for record in activity_records]
 
     # Группировка данных по датам
-    unique_dates = sorted(list(set(dates)))
-    daily_values = {}
-    daily_calories = {}
+    unique_dates = sorted(set(dates))
+    daily_values: dict = {}
+    daily_calories: dict = {}
 
-    for date, value, cal in zip(dates, values, calories):
+    for date, value, cal in zip(dates, values, calories, strict=True):
         if date not in daily_values:
             daily_values[date] = {}
             daily_calories[date] = 0
@@ -149,7 +154,7 @@ def create_activity_chart(user_id):
     plot_calories = [daily_calories[date] for date in unique_dates]
 
     # Создаем график
-    fig, ax = plt.subplots(figsize=(12, 8))
+    _fig, ax = plt.subplots(figsize=(12, 8))
 
     # График сожженных калорий
     ax.bar(plot_dates, plot_calories, label="Сожжено калорий", color="coral", alpha=0.7)
@@ -158,17 +163,19 @@ def create_activity_chart(user_id):
     ax.tick_params(axis="y", labelcolor="coral")
 
     # Добавляем сетку
-    ax.grid(True, linestyle="--", alpha=0.6)
+    ax.grid(b=True, linestyle="--", alpha=0.6)
 
     # Настраиваем заголовок
     plt.title(f"Активность участника (ID: {user_id}) за последние 30 дней")
 
-    # Поворачиваем подписи дат для лучшего отображения
+    # Форматируем ось X для отображения дат
+    ax.xaxis.set_major_formatter(mdates.DateFormatter("%d.%m.%Y"))
+    ax.xaxis.set_major_locator(mdates.DayLocator(interval=2))  # Показываем каждую 2-ю дату, чтобы не было перегрузки
     plt.xticks(rotation=45)
 
     # Сохраняем график
-    os.makedirs(settings.charts_dir, exist_ok=True)
-    filename = f"{settings.charts_dir}activity_{user_id}_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+    Path(settings.charts_dir).mkdir(parents=True, exist_ok=True)
+    filename = f"{settings.charts_dir}activity_{user_id}_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.png"
     plt.tight_layout()
     plt.savefig(filename)
     plt.close()
@@ -176,8 +183,9 @@ def create_activity_chart(user_id):
     return filename
 
 
-def create_comparison_chart():
-    """Создает сравнительный график для всех участников
+def create_comparison_chart() -> str | None:
+    """Создает сравнительный график для всех участников.
+
     :return: путь к файлу графика
     """
     # Получаем данные из базы
@@ -185,7 +193,7 @@ def create_comparison_chart():
     cursor = conn.cursor()
 
     cursor.execute("""
-        SELECT u.id, u.username, u.start_weight, u.target_weight, 
+        SELECT u.id, u.username, u.start_weight, u.target_weight,
                MAX(p.progress_points) as current_progress
         FROM users u
         LEFT JOIN progress p ON u.id = p.user_id
@@ -213,7 +221,7 @@ def create_comparison_chart():
         target_progress.append(abs(start_weight - target_weight) * 2)  # Умножаем на 2 для примера
 
     # Создаем график
-    fig, ax = plt.subplots(figsize=(12, 8))
+    _fig, ax = plt.subplots(figsize=(12, 8))
 
     # Рисуем точки для текущего прогресса
     y_pos = np.arange(len(usernames))
@@ -234,14 +242,14 @@ def create_comparison_chart():
     ax.grid(axis="x", linestyle="--", alpha=0.6)
 
     # Добавляем значения на бары
-    for bar, progress in zip(bars, current_progress):
+    for bar, progress in zip(bars, current_progress, strict=True):
         width = bar.get_width()
         ax.text(width, bar.get_y() + bar.get_height()/2, f"{progress:.1f}",
                 ha="left", va="center", fontweight="bold")
 
     # Сохраняем график
-    os.makedirs(settings.charts_dir, exist_ok=True)
-    filename = f"{settings.charts_dir}comparison_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+    Path(settings.charts_dir).mkdir(parents=True, exist_ok=True)
+    filename = f"{settings.charts_dir}comparison_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.png"
     plt.tight_layout()
     plt.savefig(filename)
     plt.close()
@@ -249,8 +257,9 @@ def create_comparison_chart():
     return filename
 
 
-def create_total_activity_chart():
-    """Создает сравнительный график активности всех участников
+def create_total_activity_chart() -> str | None:
+    """Создает сравнительный график активности всех участников.
+
     :return: путь к файлу графика
     """
     # Получаем данные из базы
@@ -258,7 +267,7 @@ def create_total_activity_chart():
     cursor = conn.cursor()
 
     # Получаем суммарные калории за последние 7 дней для каждого пользователя
-    seven_days_ago = (datetime.now() - timedelta(days=7)).strftime("%Y-%m-%d")
+    seven_days_ago = (datetime.now(UTC) - timedelta(days=7)).strftime("%Y-%m-%d")
 
     cursor.execute("""
         SELECT u.id, u.username, COALESCE(SUM(ar.calories), 0) as total_calories
@@ -279,7 +288,7 @@ def create_total_activity_chart():
     total_calories = [user[2] for user in users_data]
 
     # Создаем график
-    fig, ax = plt.subplots(figsize=(12, 8))
+    _fig, ax = plt.subplots(figsize=(12, 8))
 
     # Рисуем столбцы для сожженных калорий
     y_pos = np.arange(len(usernames))
@@ -295,14 +304,14 @@ def create_total_activity_chart():
     ax.grid(axis="x", linestyle="--", alpha=0.6)
 
     # Добавляем значения на бары
-    for bar, calories in zip(bars, total_calories):
+    for bar, calories in zip(bars, total_calories, strict=True):
         width = bar.get_width()
         ax.text(width, bar.get_y() + bar.get_height()/2, f"{calories:.0f}",
                 ha="left", va="center", fontweight="bold")
 
     # Сохраняем график
-    os.makedirs(settings.charts_dir, exist_ok=True)
-    filename = f"{settings.charts_dir}total_activity_{datetime.now().strftime('%Y%m%d_%H%M%S')}.png"
+    Path(settings.charts_dir).mkdir(parents=True, exist_ok=True)
+    filename = f"{settings.charts_dir}total_activity_{datetime.now(UTC).strftime('%Y%m%d_%H%M%S')}.png"
     plt.tight_layout()
     plt.savefig(filename)
     plt.close()

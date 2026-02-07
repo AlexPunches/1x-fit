@@ -1,5 +1,11 @@
-def calculate_bmi(weight, height):
-    """Рассчитывает ИМТ (индекс массы тела)
+import sqlite3
+from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
+
+
+def calculate_bmi(weight: float, height: float) -> float:
+    """Рассчитывает ИМТ (индекс массы тела).
+
     :param weight: вес в кг
     :param height: рост в см
     :return: значение ИМТ
@@ -8,25 +14,33 @@ def calculate_bmi(weight, height):
     return weight / (height_m ** 2)
 
 
-def get_weight_factor(initial_bmi):
-    """Возвращает коэффициент, зависящий от начального ИМТ
+def get_weight_factor(initial_bmi: float) -> float:
+    """Возвращает коэффициент, зависящий от начального ИМТ.
+
     :param initial_bmi: начальный ИМТ
     :return: коэффициент для расчета прогресса
     """
-    if initial_bmi < 25:  # нормальный вес
+    # Константы для порогов ИМТ
+    normal_bmi_threshold = 25
+    overweight_bmi_threshold = 30
+    obesity1_bmi_threshold = 35
+    obesity2_bmi_threshold = 40
+
+    if initial_bmi < normal_bmi_threshold:  # нормальный вес
         return 1.0
-    if initial_bmi < 30:  # избыточный вес
+    if initial_bmi < overweight_bmi_threshold:  # избыточный вес
         return 1.2
-    if initial_bmi < 35:  # ожирение 1 степени
+    if initial_bmi < obesity1_bmi_threshold:  # ожирение 1 степени
         return 1.5
-    if initial_bmi < 40:  # ожирение 2 степени
+    if initial_bmi < obesity2_bmi_threshold:  # ожирение 2 степени
         return 1.8
     # ожирение 3 степени
     return 2.0
 
 
-def calculate_progress_points(start_weight, current_weight, height, target_weight):
-    """Рассчитывает прогресс в условных пунктах
+def calculate_progress_points(start_weight: float, current_weight: float, height: float, target_weight: float) -> float:
+    """Рассчитывает прогресс в условных пунктов.
+
     :param start_weight: начальный вес
     :param current_weight: текущий вес
     :param height: рост
@@ -36,11 +50,8 @@ def calculate_progress_points(start_weight, current_weight, height, target_weigh
     initial_bmi = calculate_bmi(start_weight, height)
     current_bmi = calculate_bmi(current_weight, height)
 
-    bmi_improvement = initial_bmi - current_bmi
-
     # Применяем коэффициент, зависящий от начального ИМТ
-    weight_factor = get_weight_factor(initial_bmi)
-    progress_score = bmi_improvement * weight_factor
+    _weight_factor = get_weight_factor(initial_bmi)
 
     # Рассчитываем адаптивный фактор для шкалы прогресса
     current_bmi_diff = abs(current_bmi - calculate_bmi(target_weight, height))
@@ -56,13 +67,12 @@ def calculate_progress_points(start_weight, current_weight, height, target_weigh
 
     # Рассчитываем итоговый прогресс
     weight_loss = start_weight - current_weight
-    progress_points = weight_loss * points_for_kg
-
-    return progress_points
+    return weight_loss * points_for_kg
 
 
-def calculate_percentage_loss(start_weight, current_weight):
-    """Рассчитывает процент снижения веса
+def calculate_percentage_loss(start_weight: float, current_weight: float) -> float:
+    """Рассчитывает процент снижения веса.
+
     :param start_weight: начальный вес
     :param current_weight: текущий вес
     :return: процент снижения
@@ -70,8 +80,9 @@ def calculate_percentage_loss(start_weight, current_weight):
     return (start_weight - current_weight) / start_weight * 100
 
 
-def calculate_adjusted_percentage(start_weight, current_weight, height):
-    """Рассчитывает процент снижения веса с коррекцией на ИМТ
+def calculate_adjusted_percentage(start_weight: float, current_weight: float, height: float) -> float:
+    """Рассчитывает процент снижения веса с коррекцией на ИМТ.
+
     :param start_weight: начальный вес
     :param current_weight: текущий вес
     :param height: рост
@@ -81,13 +92,18 @@ def calculate_adjusted_percentage(start_weight, current_weight, height):
     initial_bmi = calculate_bmi(start_weight, height)
 
     # Определяем коэффициент коррекции
-    if initial_bmi < 25:
+    normal_bmi_threshold = 25
+    overweight_bmi_threshold = 30
+    obesity1_bmi_threshold = 35
+    obesity2_bmi_threshold = 40
+
+    if initial_bmi < normal_bmi_threshold:
         adjustment_factor = 1.0
-    elif initial_bmi < 30:
+    elif initial_bmi < overweight_bmi_threshold:
         adjustment_factor = 1.1
-    elif initial_bmi < 35:
+    elif initial_bmi < obesity1_bmi_threshold:
         adjustment_factor = 1.3
-    elif initial_bmi < 40:
+    elif initial_bmi < obesity2_bmi_threshold:
         adjustment_factor = 1.6
     else:
         adjustment_factor = 2.0
@@ -95,21 +111,19 @@ def calculate_adjusted_percentage(start_weight, current_weight, height):
     return percentage_loss * adjustment_factor
 
 
-def calculate_calories_from_activities(user_id, db_path, days=1):
-    """Рассчитывает сумму сожженных калорий за последние N дней
+def calculate_calories_from_activities(user_id: int, db_path: str, days: int = 1) -> float:
+    """Рассчитывает сумму сожженных калорий за последние N дней.
+
     :param user_id: ID пользователя
     :param db_path: путь к базе данных
     :param days: количество дней для учета (по умолчанию 1)
     :return: сумма сожженных калорий
     """
-    import sqlite3
-    from datetime import datetime, timedelta
-
     conn = sqlite3.connect(db_path)
     cursor = conn.cursor()
 
     # Рассчитываем дату начала периода
-    start_date = (datetime.now() - timedelta(days=days)).strftime("%Y-%m-%d")
+    start_date = (datetime.now(UTC) - timedelta(days=days)).strftime("%Y-%m-%d")
 
     # Получаем сумму сожженных калорий за указанный период
     cursor.execute("""
@@ -124,16 +138,28 @@ def calculate_calories_from_activities(user_id, db_path, days=1):
     return result if result is not None else 0
 
 
-def calculate_final_score(start_weight, current_weight, height, target_weight, user_id=None, db_path=None):
-    """Рассчитывает итоговый прогресс с использованием комбинированной формулы
-    :param start_weight: начальный вес
-    :param current_weight: текущий вес
-    :param height: рост
-    :param target_weight: целевой вес
-    :param user_id: ID пользователя (для учета активностей)
-    :param db_path: путь к базе данных
+@dataclass
+class ScoreCalculationParams:
+    start_weight: float
+    current_weight: float
+    height: float
+    target_weight: float
+    user_id: int | None = None
+    db_path: str | None = None
+
+
+def calculate_final_score(params: ScoreCalculationParams) -> float:
+    """Рассчитывает итоговый прогресс с использованием комбинированной формулы.
+
+    :param params: параметры для расчета прогресса
     :return: итоговый прогресс
     """
+    start_weight = params.start_weight
+    current_weight = params.current_weight
+    height = params.height
+    target_weight = params.target_weight
+    user_id = params.user_id
+    db_path = params.db_path
     bmi_based_score = calculate_progress_points(start_weight, current_weight, height, target_weight)
     percentage_based_score = calculate_adjusted_percentage(start_weight, current_weight, height)
 
@@ -141,7 +167,7 @@ def calculate_final_score(start_weight, current_weight, height, target_weight, u
     base_score = (bmi_based_score * 0.6) + (percentage_based_score * 0.4)
 
     # Если указаны user_id и db_path, добавляем бонус за активности
-    activity_bonus = 0
+    activity_bonus: float = 0.0
     if user_id is not None and db_path is not None:
         # Получаем сожженные калории за последний день
         daily_calories = calculate_calories_from_activities(user_id, db_path, days=1)
@@ -149,6 +175,4 @@ def calculate_final_score(start_weight, current_weight, height, target_weight, u
         # Добавляем бонус за активности (например, 0.1 балла за каждые 100 калорий)
         activity_bonus = daily_calories * 0.001
 
-    final_score = base_score + activity_bonus
-
-    return final_score
+    return base_score + activity_bonus

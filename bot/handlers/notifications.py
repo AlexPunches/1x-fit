@@ -1,8 +1,10 @@
 # bot/handlers/notifications.py
 
+import logging
 import sqlite3
 
 import pytz
+import utils.messages as msg
 from aiogram import Bot, Router
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from database.models import DATABASE_PATH
@@ -13,12 +15,12 @@ router = Router()
 
 
 class NotificationScheduler:
-    def __init__(self):
+    def __init__(self) -> None:
         self.bot = Bot(token=settings.bot_token)
         self.scheduler = AsyncIOScheduler()
 
-    def start_scheduler(self):
-        """Запуск планировщика уведомлений"""
+    def start_scheduler(self) -> None:
+        """Запуск планировщика уведомлений."""
         # Используем московский часовой пояс
         tz = pytz.timezone("Europe/Moscow")
 
@@ -29,27 +31,27 @@ class NotificationScheduler:
         # Добавляем задачи в планировщик
         self.scheduler.add_job(
             self.send_weight_reminders,
-            'cron',
+            "cron",
             hour=weight_hour,
             minute=weight_minute,
             timezone=tz,
-            id='weight_reminder'
+            id="weight_reminder",
         )
 
         self.scheduler.add_job(
             self.send_activity_reminders,
-            'cron',
+            "cron",
             hour=activity_hour,
             minute=activity_minute,
             timezone=tz,
-            id='activity_reminder'
+            id="activity_reminder",
         )
 
         # Запускаем планировщик
         self.scheduler.start()
 
-    async def send_weight_reminders(self):
-        """Отправка напоминаний о вводе веса"""
+    async def send_weight_reminders(self) -> None:
+        """Отправка напоминаний о вводе веса."""
         conn = sqlite3.connect(DATABASE_PATH)
         cursor = conn.cursor()
 
@@ -62,15 +64,16 @@ class NotificationScheduler:
             try:
                 await self.bot.send_message(
                     chat_id=user_id,
-                    text="⏰ Привет! Пожалуйста, введи свой сегодняшний вес в килограммах. Используй команду /weight или просто пришли число.",
+                    text=msg.WEIGHT_REMINDER,
                 )
-            except Exception as e:
-                print(f"Ошибка при отправке уведомления пользователю {user_id}: {e}")
+            except Exception:
+                logger = logging.getLogger(__name__)
+                logger.exception("Ошибка при отправке уведомления пользователю %s", user_id)
 
         conn.close()
 
-    async def send_activity_reminders(self):
-        """Отправка напоминаний о вводе активности"""
+    async def send_activity_reminders(self) -> None:
+        """Отправка напоминаний о вводе активности."""
         conn = sqlite3.connect(DATABASE_PATH)
         cursor = conn.cursor()
 
@@ -83,15 +86,16 @@ class NotificationScheduler:
             try:
                 await self.bot.send_message(
                     chat_id=user_id,
-                    text="⏰ Не забудь ввести сегодняшнюю активность! Пожалуйста, используй команду /activity, чтобы ввести данные о своей активности за сегодня.",
+                    text=msg.ACTIVITY_REMINDER,
                 )
-            except Exception as e:
-                print(f"Ошибка при отправке уведомления пользователю {user_id}: {e}")
+            except Exception:
+                logger = logging.getLogger(__name__)
+                logger.exception("Ошибка при отправке уведомления пользователю %s", user_id)
 
         conn.close()
 
-    def stop_scheduler(self):
-        """Остановка планировщика уведомлений"""
+    def stop_scheduler(self) -> None:
+        """Остановка планировщика уведомлений."""
         if self.scheduler.running:
             self.scheduler.shutdown()
 

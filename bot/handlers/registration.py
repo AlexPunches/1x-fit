@@ -2,6 +2,18 @@
 
 import sqlite3
 
+import utils.messages as msg
+
+# Константы для валидации данных
+USERNAME_MIN_LENGTH = 2
+USERNAME_MAX_LENGTH = 30
+AGE_MIN_VALUE = 18
+AGE_MAX_VALUE = 100
+HEIGHT_MIN_VALUE = 100
+HEIGHT_MAX_VALUE = 250
+WEIGHT_MIN_VALUE = 30
+WEIGHT_MAX_VALUE = 300
+
 from aiogram import Router
 from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
@@ -22,125 +34,122 @@ class RegistrationStates(StatesGroup):
 
 
 @router.message(CommandStart())
-async def cmd_start(message: Message, state: FSMContext):
-    """Обработка команды /start"""
+async def cmd_start(message: Message, state: FSMContext) -> None:
+    """Обработка команды /start."""
     await message.answer(
-        "Привет! Давай начнем регистрацию в соревновании по снижению веса.\n\n"
-        "Сначала введи свой ник:",
+        msg.REGISTRATION_WELCOME_SS.format(USERNAME_MIN_LENGTH, USERNAME_MAX_LENGTH),
     )
     await state.set_state(RegistrationStates.waiting_for_username)
 
 
 @router.message(RegistrationStates.waiting_for_username)
-async def process_username(message: Message, state: FSMContext):
-    """Обработка ввода ника"""
-    username = message.text.strip()
+async def process_username(message: Message, state: FSMContext) -> None:
+    """Обработка ввода ника."""
+    username = message.text.strip() if message.text is not None else ""
 
-    if len(username) < 2 or len(username) > 30:
-        await message.answer("Ник должен быть длиной от 2 до 30 символов. Введи снова:")
+    if len(username) < USERNAME_MIN_LENGTH or len(username) > USERNAME_MAX_LENGTH:
+        await message.answer(msg.INVALID_NICKNAME_LENGTH_SS.format(USERNAME_MIN_LENGTH, USERNAME_MAX_LENGTH))
         return
 
     await state.update_data(username=username)
     await message.answer(
-        "Отлично! Теперь укажи свой пол (М/Ж):",
+        msg.GENDER_REQUEST_SIMPLE,
     )
     await state.set_state(RegistrationStates.waiting_for_gender)
 
 
 @router.message(RegistrationStates.waiting_for_gender)
-async def process_gender(message: Message, state: FSMContext):
-    """Обработка ввода пола"""
-    gender = message.text.strip().upper()
+async def process_gender(message: Message, state: FSMContext) -> None:
+    """Обработка ввода пола."""
+    gender = message.text.strip().upper() if message.text is not None else ""
 
     if gender not in ["М", "Ж", "M", "F"]:
-        await message.answer("Пожалуйста, укажи пол: М (мужской) или Ж (женский):")
+        await message.answer(msg.INVALID_GENDER_SS.format("М", "Ж"))
         return
 
     # Преобразуем в формат базы данных
     gender_db = "M" if gender in ["М", "M"] else "F"
 
     await state.update_data(gender=gender_db)
-    await message.answer("Теперь введи свой возраст:")
+    await message.answer(msg.AGE_REQUEST)
     await state.set_state(RegistrationStates.waiting_for_age)
 
 
 @router.message(RegistrationStates.waiting_for_age)
-async def process_age(message: Message, state: FSMContext):
-    """Обработка ввода возраста"""
+async def process_age(message: Message, state: FSMContext) -> None:
+    """Обработка ввода возраста."""
     try:
-        age = int(message.text.strip())
+        age = int(message.text.strip()) if message.text is not None else 0
 
-        if age < 18 or age > 100:
-            await message.answer("Возраст должен быть от 18 до 100 лет. Введи снова:")
+        if age < AGE_MIN_VALUE or age > AGE_MAX_VALUE:
+            await message.answer(msg.INVALID_AGE_SS.format(AGE_MIN_VALUE, AGE_MAX_VALUE))
             return
 
         await state.update_data(age=age)
-        await message.answer("Теперь укажи свой рост в сантиметрах:")
+        await message.answer(msg.HEIGHT_REQUEST)
         await state.set_state(RegistrationStates.waiting_for_height)
 
     except ValueError:
-        await message.answer("Пожалуйста, введи корректный возраст:")
+        await message.answer(msg.INVALID_AGE_INPUT)
 
 
 @router.message(RegistrationStates.waiting_for_height)
-async def process_height(message: Message, state: FSMContext):
-    """Обработка ввода роста"""
+async def process_height(message: Message, state: FSMContext) -> None:
+    """Обработка ввода роста."""
     try:
-        height = float(message.text.strip())
+        height = float(message.text.strip()) if message.text is not None else 0.0
 
-        if height < 100 or height > 250:
-            await message.answer("Рост должен быть от 100 до 250 см. Введи снова:")
+        if height < HEIGHT_MIN_VALUE or height > HEIGHT_MAX_VALUE:
+            await message.answer(msg.INVALID_HEIGHT_SS.format(HEIGHT_MIN_VALUE, HEIGHT_MAX_VALUE))
             return
 
         await state.update_data(height=height)
-        await message.answer("Теперь введи свой стартовый вес в килограммах:")
+        await message.answer(msg.START_WEIGHT_REQUEST)
         await state.set_state(RegistrationStates.waiting_for_start_weight)
 
     except ValueError:
-        await message.answer("Пожалуйста, введи корректный рост:")
+        await message.answer(msg.INVALID_HEIGHT_INPUT)
 
 
 @router.message(RegistrationStates.waiting_for_start_weight)
-async def process_start_weight(message: Message, state: FSMContext):
-    """Обработка ввода стартового веса"""
+async def process_start_weight(message: Message, state: FSMContext) -> None:
+    """Обработка ввода стартового веса."""
     try:
-        start_weight = float(message.text.strip())
+        start_weight = float(message.text.strip()) if message.text is not None else 0.0
 
-        if start_weight < 30 or start_weight > 300:
-            await message.answer("Вес должен быть от 30 до 300 кг. Введи снова:")
+        if start_weight < WEIGHT_MIN_VALUE or start_weight > WEIGHT_MAX_VALUE:
+            await message.answer(msg.INVALID_WEIGHT_SS.format(WEIGHT_MIN_VALUE, WEIGHT_MAX_VALUE))
             return
 
         await state.update_data(start_weight=start_weight)
-        await message.answer("Теперь введи свой целевой вес в килограммах:")
+        await message.answer(msg.TARGET_WEIGHT_REQUEST_EXTRA)
         await state.set_state(RegistrationStates.waiting_for_target_weight)
 
     except ValueError:
-        await message.answer("Пожалуйста, введи корректный стартовый вес:")
+        await message.answer(msg.INVALID_START_WEIGHT_INPUT)
 
 
 @router.message(RegistrationStates.waiting_for_target_weight)
-async def process_target_weight(message: Message, state: FSMContext):
-    """Обработка ввода целевого веса"""
+async def process_target_weight(message: Message, state: FSMContext) -> None:
+    """Обработка ввода целевого веса."""
     try:
-        target_weight = float(message.text.strip())
+        target_weight = float(message.text.strip()) if message.text is not None else 0.0
         data = await state.get_data()
         start_weight = data["start_weight"]
 
-        if target_weight < 30 or target_weight > 300:
-            await message.answer("Вес должен быть от 30 до 300 кг. Введи снова:")
+        if target_weight < WEIGHT_MIN_VALUE or target_weight > WEIGHT_MAX_VALUE:
+            await message.answer(msg.INVALID_WEIGHT_SS.format(WEIGHT_MIN_VALUE, WEIGHT_MAX_VALUE))
             return
 
         if target_weight >= start_weight:
-            await message.answer(
-                f"Целевой вес ({target_weight} кг) должен быть меньше стартового веса ({start_weight} кг). Введи снова:",
-            )
+            await message.answer(msg.INVALID_TARGET_WEIGHT_S)
             return
 
         await state.update_data(target_weight=target_weight)
 
         # Сохраняем данные в базу
         user_data = await state.get_data()
-        user_id = message.from_user.id
+        user_id = message.from_user.id if message.from_user and message.from_user.id is not None else 0
         username = user_data["username"]
         gender = user_data["gender"]
         age = user_data["age"]
@@ -152,8 +161,8 @@ async def process_target_weight(message: Message, state: FSMContext):
         cursor = conn.cursor()
 
         cursor.execute("""
-            INSERT OR REPLACE INTO users 
-            (id, username, gender, age, height, start_weight, target_weight) 
+            INSERT OR REPLACE INTO users
+            (id, username, gender, age, height, start_weight, target_weight)
             VALUES (?, ?, ?, ?, ?, ?, ?)
         """, (user_id, username, gender, age, height, start_weight, target_weight))
 
@@ -161,18 +170,17 @@ async def process_target_weight(message: Message, state: FSMContext):
         conn.close()
 
         await message.answer(
-            f"Регистрация завершена! Ты успешно зарегистрирован в соревновании.\n\n"
-            f"Твой профиль:\n"
-            f"- Ник: {username}\n"
-            f"- Пол: {'Мужской' if gender == 'M' else 'Женский'}\n"
-            f"- Возраст: {age} лет\n"
-            f"- Рост: {height} см\n"
-            f"- Стартовый вес: {start_weight} кг\n"
-            f"- Целевой вес: {target_weight} кг\n\n"
-            f"Теперь ты будешь получать ежедневные опросы о весе и количестве шагов.",
+            msg.REGISTRATION_COMPLETED_SSSSSS.format(
+                username,
+                "Мужской" if gender == "M" else "Женский",
+                age,
+                height,
+                start_weight,
+                target_weight,
+            ),
         )
 
         await state.clear()
 
     except ValueError:
-        await message.answer("Пожалуйста, введи корректный целевой вес:")
+        await message.answer(msg.INVALID_TARGET_WEIGHT_INPUT)

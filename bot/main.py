@@ -3,19 +3,19 @@
 import asyncio
 import logging
 
+import utils.messages as msg
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.webhook.aiohttp_server import SimpleRequestHandler, setup_application
 from aiohttp import web
-from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from database.models import init_db
 from handlers import setup_handlers
 from handlers.notifications import scheduler
 from settings import settings
 
 
-async def on_startup(app: web.Application):
+async def on_startup(app: web.Application) -> None:
     # Инициализация базы данных
     init_db()
 
@@ -23,14 +23,17 @@ async def on_startup(app: web.Application):
     scheduler.start_scheduler()
 
 
-async def on_cleanup(app: web.Application):
+async def on_cleanup(app: web.Application) -> None:
     # Остановка планировщика уведомлений
     scheduler.stop_scheduler()
 
 
-async def main():
+async def main() -> None:
     # Настройка логирования
     logging.basicConfig(level=getattr(logging, settings.log_min_level.upper(), logging.INFO))
+
+    # Инициализация логгера
+    logger = logging.getLogger(__name__)
 
     # Инициализация бота
     bot = Bot(token=settings.bot_token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
@@ -41,54 +44,73 @@ async def main():
     # Настройка обработчиков
     setup_handlers(dp)
 
-    # Получение webhook URL из настроек
-    webhook_url = settings.webhook_url
+    # Проверяем режим работы: development или production
+    if settings.app_env.lower() == "development":
+        # Режим разработки - запуск с polling
+        logger.info(msg.BOT_STARTUP_DEV_MODE)
 
-    # Установка webhook
-    # Если используется самоподписной сертификат, нужно передать его в Telegram
-    # см. инструкции в nginx/ssl_setup_instructions.md
-    await bot.set_webhook(webhook_url)
+        # Инициализация базы данных
+        init_db()
 
-    # Настройка веб-приложения
-    app = web.Application()
+        # Запуск планировщика уведомлений
+        scheduler.start_scheduler()
 
-    # Регистрация обработчика запросов
-    webhook_requests_handler = SimpleRequestHandler(
-        dispatcher=dp,
-        bot=bot,
-    )
+        try:
+            await dp.start_polling(bot)
+        finally:
+            # Остановка планировщика при завершении работы
+            scheduler.stop_scheduler()
+    else:
+        # Режим продакшн - запуск с webhook
+        # Получение webhook URL из настроек
+        webhook_url = settings.webhook_url
 
-    # Регистрация маршрута для вебхука
-    webhook_requests_handler.register(app, path="/webhook")
+        # Установка webhook
+        # Если используется самоподписной сертификат, нужно передать его в Telegram
+        # см. инструкции в nginx/ssl_setup_instructions.md
+        if webhook_url:
+            await bot.set_webhook(webhook_url)
 
-    # Настройка приложения
-    setup_application(app, dp, bot=bot)
+        # Настройка веб-приложения
+        app = web.Application()
 
-    # Добавление функций запуска и остановки
-    app.on_startup.append(on_startup)
-    app.on_cleanup.append(on_cleanup)
+        # Регистрация обработчика запросов
+        webhook_requests_handler = SimpleRequestHandler(
+            dispatcher=dp,
+            bot=bot,
+        )
 
-    # Получение хоста и порта из настроек
-    host = settings.host
-    port = settings.port
+        # Регистрация маршрута для вебхука
+        webhook_requests_handler.register(app, path="/webhook")
 
-    # Запуск веб-сервера
-    runner = web.AppRunner(app)
-    await runner.setup()
-    site = web.TCPSite(runner, host, port)
-    await site.start()
+        # Настройка приложения
+        setup_application(app, dp, bot=bot)
 
-    logging.info(f"Бот запущен на {host}:{port}")
+        # Добавление функций запуска и остановки
+        app.on_startup.append(on_startup)
+        app.on_cleanup.append(on_cleanup)
 
-    # Бесконечный цикл
-    try:
-        await asyncio.sleep(float("inf"))
-    except (KeyboardInterrupt, SystemExit):
-        logging.warning("Shutting down...")
-    finally:
-        # Остановка планировщика при завершении работы
-        scheduler.stop_scheduler()
-        await runner.cleanup()
+        # Получение хоста и порта из настроек
+        host = settings.host
+        port = settings.port
+
+        # Запуск веб-сервера
+        runner = web.AppRunner(app)
+        await runner.setup()
+        site = web.TCPSite(runner, host, port)
+        await site.start()
+
+        logger.info(msg.BOT_STARTED_ON_HOST_PORT_SS, host, port)
+
+        # Бесконечный цикл
+        try:
+            await asyncio.sleep(float("inf"))
+        except (KeyboardInterrupt, SystemExit):
+            logger.warning(msg.SHUTTING_DOWN)
+        finally:
+            # Остановка планировщика при завершении работы
+            scheduler.stop_scheduler()
+            await runner.cleanup()
 
 
 if __name__ == "__main__":

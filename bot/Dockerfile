@@ -1,6 +1,6 @@
 # Dockerfile для 1x-fit бота
 
-FROM python:3.13-slim
+FROM python:3.14-slim
 
 # Установка системных зависимостей для компиляции пакетов и работы приложения
 RUN apt-get update && apt-get install -y \

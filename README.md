@@ -23,7 +23,9 @@ For more details, see [CI/CD Workflow Documentation](./docs/cicd_workflow.md).
 
 1. Copy `.env.example` to `.env` and fill in your bot token
 2. Install dependencies: `uv pip install -r bot/requirements.txt`
-3. Run the bot: `cd bot && python main.py`
+3. Run the bot:
+   - For production (webhook mode): `cd bot && python main.py`
+   - For development (polling mode): Set `APP_ENV=development` in your .env file and run `cd bot && python main.py`
 
 ## Commands
 

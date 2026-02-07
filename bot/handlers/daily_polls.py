@@ -1,18 +1,17 @@
 # bot/handlers/daily_polls.py
 
 import logging
-import os
 import sqlite3
-from datetime import datetime
+from datetime import UTC, datetime
 
+import utils.messages as msg
 from aiogram import F, Router
 from aiogram.filters import Command, StateFilter
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import KeyboardButton, Message, ReplyKeyboardMarkup
 from database.models import DATABASE_PATH
-from settings import settings
-from utils.calculations import calculate_final_score
+from utils.calculations import ScoreCalculationParams, calculate_final_score
 
 logger = logging.getLogger(__name__)
 
@@ -20,9 +19,9 @@ router = Router()
 
 
 @router.message(Command("weight"))
-async def cmd_weight(message: Message):
-    """Обработка команды /weight - ввод текущего веса"""
-    user_id = message.from_user.id
+async def cmd_weight(message: Message) -> None:
+    """Обработка команды /weight - ввод текущего веса."""
+    user_id = message.from_user.id if message.from_user and message.from_user.id is not None else 0
 
     # Проверяем, зарегистрирован ли пользователь
     conn = sqlite3.connect(DATABASE_PATH)
@@ -32,30 +31,37 @@ async def cmd_weight(message: Message):
     user_exists = cursor.fetchone()
 
     if not user_exists:
-        await message.answer("Сначала необходимо зарегистрироваться. Используй команду /start")
+        await message.answer(msg.NOT_REGISTERED)
         conn.close()
         return
 
     conn.close()
 
-    await message.answer("Пожалуйста, введи свой текущий вес в килограммах:")
+    await message.answer(msg.WEIGHT_INPUT_REQUEST)
 
 
 @router.message(F.text.func(lambda x: x.replace(".", "", 1).isdigit()), StateFilter(None))
-async def process_weight_input(message: Message):
-    """Обработка ввода веса"""
-    logger.debug("Получено числовое сообщение: %s от пользователя %s", message.text, message.from_user.id)
+async def process_weight_input(message: Message) -> None:
+    """Обработка ввода веса."""
+    user_id_debug = message.from_user.id if message.from_user and message.from_user.id is not None else "unknown"
+    logger.debug(msg.LOG_RECEIVED_NUMERIC_MESSAGE_SS, message.text, user_id_debug)
 
     try:
-        weight = float(message.text)
-        logger.debug("Обнаружен вес: %s кг для пользователя %s", weight, message.from_user.id)
+        weight = float(message.text) if message.text is not None else 0.0
+        user_id_debug = message.from_user.id if message.from_user and message.from_user.id is not None else "unknown"
+        logger.debug(msg.LOG_DETECTED_WEIGHT_SS, weight, user_id_debug)
 
-        if weight < 30 or weight > 300:
-            logger.debug("Вес %s кг вне допустимого диапазона для пользователя %s", weight, message.from_user.id)
-            await message.answer("Вес должен быть от 30 до 300 кг. Введи снова:")
+        # Используем константы вместо магических чисел
+        min_weight = 30
+        max_weight = 300
+
+        if weight < min_weight or weight > max_weight:
+            user_id_debug = message.from_user.id if message.from_user and message.from_user.id is not None else "unknown"
+            logger.debug(msg.LOG_WEIGHT_OUT_OF_RANGE_SS, weight, user_id_debug)
+            await message.answer(msg.INVALID_WEIGHT_RANGE_SS.format(min_weight, max_weight))
             return
 
-        user_id = message.from_user.id
+        user_id = message.from_user.id if message.from_user and message.from_user.id is not None else 0
 
         # Сохраняем вес в базу
         conn = sqlite3.connect(DATABASE_PATH)
@@ -64,7 +70,7 @@ async def process_weight_input(message: Message):
         cursor.execute("""
             INSERT INTO weight_records (user_id, weight, record_date)
             VALUES (?, ?, ?)
-        """, (user_id, weight, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+        """, (user_id, weight, datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")))
 
         # Получаем данные пользователя для расчета прогресса
         cursor.execute("""
@@ -79,17 +85,25 @@ async def process_weight_input(message: Message):
             start_weight, target_weight, height = user_data
 
             # Рассчитываем прогресс
-            progress_score = calculate_final_score(start_weight, weight, height, target_weight, user_id=user_id, db_path=DATABASE_PATH)
+            params = ScoreCalculationParams(
+                start_weight=start_weight,
+                current_weight=weight,
+                height=height,
+                target_weight=target_weight,
+                user_id=user_id,
+                db_path=str(DATABASE_PATH),
+            )
+            progress_score = calculate_final_score(params)
 
             # Сохраняем прогресс в базу
             cursor.execute("""
                 INSERT INTO progress (user_id, progress_points, calculation_date)
                 VALUES (?, ?, ?)
-            """, (user_id, progress_score, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+            """, (user_id, progress_score, datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")))
 
         conn.commit()
         conn.close()
-        logger.debug("Вес %s кг успешно сохранен для пользователя %s", weight, user_id)
+        logger.debug(msg.LOG_WEIGHT_SAVED_SS, weight, user_id)
 
         # Рассчитываем изменение веса
         conn = sqlite3.connect(DATABASE_PATH)
@@ -109,24 +123,23 @@ async def process_weight_input(message: Message):
             weight_change = start_weight - weight
 
             if weight_change > 0:
-                await message.answer(f"✅ Вес сохранен: {weight} кг\nТы сбросил {abs(weight_change):.2f} кг")
+                await message.answer(msg.WEIGHT_LOST_SS.format(weight, abs(weight_change)))
             elif weight_change < 0:
-                await message.answer(f"⚠️ Вес сохранен: {weight} кг\nТы набрал {abs(weight_change):.2f} кг")
+                await message.answer(msg.WEIGHT_GAINED_SS.format(weight, abs(weight_change)))
             else:
-                await message.answer(f"✅ Вес сохранен: {weight} кг\nВес не изменился")
+                await message.answer(msg.WEIGHT_UNCHANGED_S.format(weight))
         else:
-            await message.answer(f"✅ Вес сохранен: {weight} кг")
+            await message.answer(msg.WEIGHT_SAVED_S.format(weight))
 
     except ValueError:
         # Если текст не является числом, не обрабатываем как вес
         logger.debug("Сообщение '%s' не является числом, пропускаем обработку", message.text)
-        pass
 
 
 @router.message(Command("activity"))
-async def cmd_activity(message: Message):
-    """Обработка команды /activity - ввод активности"""
-    user_id = message.from_user.id
+async def cmd_activity(message: Message) -> None:
+    """Обработка команды /activity - ввод активности."""
+    user_id = message.from_user.id if message.from_user and message.from_user.id is not None else 0
 
     # Проверяем, зарегистрирован ли пользователь
     conn = sqlite3.connect(DATABASE_PATH)
@@ -136,7 +149,7 @@ async def cmd_activity(message: Message):
     user_exists = cursor.fetchone()
 
     if not user_exists:
-        await message.answer("Сначала необходимо зарегистрироваться. Используй команду /start")
+        await message.answer(msg.NOT_REGISTERED)
         conn.close()
         return
 
@@ -145,30 +158,29 @@ async def cmd_activity(message: Message):
     activities = cursor.fetchall()
 
     if not activities:
-        await message.answer("На данный момент нет доступных типов активности.")
+        await message.answer(msg.NO_ACTIVITIES_AVAILABLE)
         conn.close()
         return
 
     # Создаем клавиатуру с типами активности
     keyboard = []
     row = []
-    for activity_id, name, description in activities:
+    for _activity_id, _name, description in activities:
         row.append(KeyboardButton(text=description))
-        if len(row) == 2:  # Добавляем по 2 кнопки в ряд для лучшего отображения
+        buttons_per_row = 2  # Добавляем по 2 кнопки в ряд для лучшего отображения
+        if len(row) == buttons_per_row:
             keyboard.append(row)
             row = []
     if row:  # Добавляем оставшиеся кнопки
         keyboard.append(row)
 
     reply_markup = ReplyKeyboardMarkup(keyboard=keyboard, resize_keyboard=True)
-    await message.answer("Выбери тип активности:", reply_markup=reply_markup)
+    await message.answer(msg.ACTIVITY_SELECTION_PROMPT, reply_markup=reply_markup)
 
     conn.close()
 
 
 # Состояния для FSM
-from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import State, StatesGroup
 
 
 class ActivityStates(StatesGroup):
@@ -177,8 +189,8 @@ class ActivityStates(StatesGroup):
 
 
 @router.message(ActivityStates.waiting_for_activity_type)
-async def process_activity_type_selection(message: Message, state: FSMContext):
-    """Обработка выбора типа активности"""
+async def process_activity_type_selection(message: Message, state: FSMContext) -> None:
+    """Обработка выбора типа активности."""
     activity_description = message.text
 
     # Получаем ID типа активности по описанию
@@ -189,7 +201,7 @@ async def process_activity_type_selection(message: Message, state: FSMContext):
     result = cursor.fetchone()
 
     if not result:
-        await message.answer("Пожалуйста, выбери тип активности из предложенных вариантов.")
+        await message.answer(msg.INVALID_ACTIVITY_SELECTION)
         conn.close()
         return
 
@@ -201,20 +213,21 @@ async def process_activity_type_selection(message: Message, state: FSMContext):
     conn.close()
 
     # Запрашиваем значение активности
-    await message.answer(f"Теперь введи значение активности '{activity_description}' в {unit}:")
+    await message.answer(msg.ACTIVITY_VALUE_REQUEST_SS.format(activity_description, unit))
 
     # Переходим к следующему состоянию
     await state.set_state(ActivityStates.waiting_for_value)
 
 
 @router.message(ActivityStates.waiting_for_value)
-async def process_activity_value(message: Message, state: FSMContext):
-    """Обработка ввода значения активности"""
-    logger.debug("Получено значение активности: %s от пользователя %s", message.text, message.from_user.id)
+async def process_activity_value(message: Message, state: FSMContext) -> None:
+    """Обработка ввода значения активности."""
+    user_id_debug = message.from_user.id if message.from_user and message.from_user.id is not None else "unknown"
+    logger.debug(msg.LOG_RECEIVED_ACTIVITY_VALUE_SS, message.text, user_id_debug)
 
     try:
-        value = float(message.text)
-        user_id = message.from_user.id
+        value = float(message.text) if message.text is not None else 0.0
+        user_id = message.from_user.id if message.from_user and message.from_user.id is not None else 0
 
         # Получаем сохраненные данные
         data = await state.get_data()
@@ -226,21 +239,26 @@ async def process_activity_value(message: Message, state: FSMContext):
                     user_id, activity_name, value, unit)
 
         # Проверяем диапазон значений в зависимости от типа активности
-        if activity_name == "walking" and (value < 0 or value > 50000):
+        max_steps = 50000
+        max_running_minutes = 300  # до 5 часов
+        max_cycling_km = 200  # до 200 км
+        max_cardio_kcal = 2000  # до 2000 ккал
+
+        if activity_name == "walking" and (value < 0 or value > max_steps):
             logger.debug("Значение %s вне диапазона для ходьбы", value)
-            await message.answer("Количество шагов должно быть от 0 до 50000. Введи снова:")
+            await message.answer(msg.INVALID_STEPS_RANGE_SS.format(0, max_steps))
             return
-        if activity_name == "running" and (value < 0 or value > 300):  # до 5 часов
+        if activity_name == "running" and (value < 0 or value > max_running_minutes):  # до 5 часов
             logger.debug("Значение %s вне диапазона для бега", value)
-            await message.answer("Время бега должно быть от 0 до 300 минут. Введи снова:")
+            await message.answer(msg.INVALID_RUNNING_RANGE_SS.format(0, max_running_minutes))
             return
-        if activity_name == "cycling" and (value < 0 or value > 200):  # до 200 км
+        if activity_name == "cycling" and (value < 0 or value > max_cycling_km):  # до 200 км
             logger.debug("Значение %s вне диапазона для велосипеда", value)
-            await message.answer("Расстояние на велосипеде должно быть от 0 до 200 км. Введи снова:")
+            await message.answer(msg.INVALID_CYCLING_RANGE_SS.format(0, max_cycling_km))
             return
-        if activity_name == "cardio" and (value < 0 or value > 2000):  # до 2000 ккал
+        if activity_name == "cardio" and (value < 0 or value > max_cardio_kcal):  # до 2000 ккал
             logger.debug("Значение %s вне диапазона для кардио", value)
-            await message.answer("Количество калорий должно быть от 0 до 2000. Введи снова:")
+            await message.answer(msg.INVALID_CARDIO_RANGE_SS.format(0, max_cardio_kcal))
             return
 
         # Сохраняем активность в базу
@@ -261,30 +279,30 @@ async def process_activity_value(message: Message, state: FSMContext):
         cursor.execute("""
             INSERT INTO activity_records (user_id, activity_type_id, value, calories, record_date)
             VALUES (?, ?, ?, ?, ?)
-        """, (user_id, activity_type_id, value, calories, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+        """, (user_id, activity_type_id, value, calories, datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")))
 
         conn.commit()
         conn.close()
 
         # Отправляем подтверждение
         if calories:
-            await message.answer(f"✅ Активность '{activity_name}' сохранена: {value} {unit}\nСожжено калорий: {calories:.2f}")
+            await message.answer(msg.ACTIVITY_SAVED_WITH_CALORIES_SSSS.format(activity_name, value, unit, calories))
         else:
-            await message.answer(f"✅ Активность '{activity_name}' сохранена: {value} {unit}")
+            await message.answer(msg.ACTIVITY_SAVED_SSSS.format(activity_name, value, unit, 0))
 
-        logger.debug("Активность успешно сохранена для пользователя %s", user_id)
+        logger.debug(msg.LOG_ACTIVITY_SAVED_SS, activity_name, user_id)
 
         # Сбрасываем состояние
         await state.clear()
 
     except ValueError:
         logger.debug("Значение '%s' не является числом для активности", message.text)
-        await message.answer("Пожалуйста, введи корректное числовое значение.")
+        await message.answer(msg.INVALID_ACTIVITY_VALUE_INPUT)
 
 
 @router.message(F.text.contains("Ходьба") | F.text.contains("Бег") | F.text.contains("Велосипед") | F.text.contains("Кардио"))
-async def quick_activity_selection(message: Message, state: FSMContext):
-    """Быстрый выбор активности через клавиатуру"""
+async def quick_activity_selection(message: Message, state: FSMContext) -> None:
+    """Быстрый выбор активности через клавиатуру."""
     activity_text = message.text
 
     # Определяем тип активности по тексту
@@ -314,12 +332,12 @@ async def quick_activity_selection(message: Message, state: FSMContext):
             conn.close()
 
             # Запрашиваем значение активности
-            await message.answer(f"Теперь введи значение активности '{activity_text}' в {unit}:")
+            await message.answer(msg.ACTIVITY_VALUE_REQUEST_SS.format(activity_text, unit))
 
             # Переходим к следующему состоянию
             await state.set_state(ActivityStates.waiting_for_value)
         else:
-            await message.answer("Произошла ошибка при выборе типа активности.")
+            await message.answer(msg.ACTIVITY_SELECTION_ERROR)
     else:
         # Если это не выбор активности, возможно это значение - игнорируем
         pass
