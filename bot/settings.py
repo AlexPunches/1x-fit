@@ -39,6 +39,7 @@ class Settings(BaseSettings):
     anal_postgres_user: str | None = None
     anal_postgres_password: str | None = None
     anal_postgres_port: str | None = None
+    anal_postgres_host: str | None = None
 
     class Config:
         env_file = ".env"
