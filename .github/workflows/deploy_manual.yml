@@ -1,4 +1,4 @@
-name: Deploy Bot and PostgreSQL
+name: Deploy Bot, PostgreSQL и ETL
 
 on:
   workflow_dispatch:
@@ -10,7 +10,7 @@ on:
         type: choice
         options:
         - production
-      image_tag:
+      bot_image_tag:
         description: 'Docker image tag to deploy (e.g., latest, main, sha-xxx)'
         required: false
         default: 'latest'
@@ -20,16 +20,11 @@ on:
         required: false
         default: 'latest'
         type: string
-      force_recreate:
-        description: 'Force recreate containers'
+      etl_image_tag:
+        description: 'PostgreSQL Docker image tag to deploy (e.g., latest, main, sha-xxx)'
         required: false
-        default: true
-        type: boolean
-
-env:
-  REGISTRY: docker.io
-  IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/1x-fit
-  POSTGRES_IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME }}/1x-fit-postgres
+        default: 'latest'
+        type: string
 
 jobs:
   deploy:
@@ -55,14 +50,33 @@ jobs:
           docker volume inspect bot-charts-data >/dev/null 2>&1 || docker volume create bot-charts-data
 
           # Обновление образа бота
-          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/1x-fit:${{ inputs.image_tag }}
+          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/1x-fit:${{ inputs.bot_image_tag }}
 
           # Остановка и удаление старого контейнера бота
           docker stop 1x-fit-bot || true
           
-          if [ "${{ inputs.force_recreate }}" = "true" ]; then
-            docker rm 1x-fit-bot || true
-          fi
+          docker rm 1x-fit-bot || true
+
+    - name: Prepare ETL deployment
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.VM_HOST }}
+        username: ${{ secrets.VM_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          # Создание директории, если не существует
+          sudo mkdir -p /opt/1x-fit-etl/
+
+          # Проверка наличия volume для данных
+          docker volume inspect bot-db-data >/dev/null 2>&1 || docker volume create bot-db-data
+
+          # Обновление образа бота
+          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/1x-fit-etl:${{ inputs.bot_image_tag }}
+
+          # Остановка и удаление старого контейнера бота
+          docker stop 1x-fit-etl || true
+          
+          docker rm 1x-fit-etl || true
 
     - name: Prepare PostgreSQL deployment
       uses: appleboy/ssh-action@v1.0.0
@@ -80,9 +94,7 @@ jobs:
           # Остановка и удаление старого контейнера PostgreSQL
           docker stop 1x-fit-postgres || true
           
-          if [ "${{ inputs.force_recreate }}" = "true" ]; then
-            docker rm 1x-fit-postgres || true
-          fi
+          docker rm 1x-fit-postgres || true
 
     - name: Deploy Bot
       uses: appleboy/ssh-action@v1.0.0
@@ -109,11 +121,32 @@ jobs:
             --env ANAL_POSTGRES_DB=${{ secrets.ANAL_POSTGRES_DB }} \
             --env ANAL_POSTGRES_USER=${{ secrets.ANAL_POSTGRES_USER }} \
             --env ANAL_POSTGRES_PASSWORD=${{ secrets.ANAL_POSTGRES_PASSWORD }} \
+            --env ANAL_POSTGRES_PORT=${{ vars.ANAL_POSTGRES_PORT }} \
+            --env ANAL_POSTGRES_HOST=${{ vars.ANAL_POSTGRES_HOST }} \
             -p 8000:8000 \
             --volume bot-db-data:/app/data \
             --volume bot-charts-data:/app/charts \
             --restart unless-stopped \
-            ${{ secrets.DOCKERHUB_USERNAME }}/1x-fit:${{ inputs.image_tag }}
+            ${{ secrets.DOCKERHUB_USERNAME }}/1x-fit:${{ inputs.bot_image_tag }}
+
+    - name: Deploy ETL
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.VM_HOST }}
+        username: ${{ secrets.VM_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          # Запуск ETL контейнера
+          docker run -d \
+            --name 1x-fit-etl \
+            --env ETL_ANAL_POSTGRES_DB=${{ secrets.ANAL_POSTGRES_DB }} \
+            --env ETL_ANAL_POSTGRES_USER=${{ secrets.ANAL_POSTGRES_USER }} \
+            --env ETL_ANAL_POSTGRES_PASSWORD=${{ secrets.ANAL_POSTGRES_PASSWORD }} \
+            --env ETL_ANAL_POSTGRES_PORT=${{ vars.ANAL_POSTGRES_PORT }} \
+            --env ETL_ANAL_POSTGRES_HOST=${{ vars.ANAL_POSTGRES_HOST }} \
+            --volume bot-db-data:/app/data \
+            --restart unless-stopped \
+            ${{ secrets.DOCKERHUB_USERNAME }}/1x-fit-etl:${{ inputs.etl_image_tag }}
 
     - name: Deploy PostgreSQL
       uses: appleboy/ssh-action@v1.0.0
@@ -129,7 +162,7 @@ jobs:
             --env POSTGRES_USER=${{ secrets.ANAL_POSTGRES_USER }} \
             --env POSTGRES_DB=${{ secrets.ANAL_POSTGRES_DB }} \
             --volume anal_postgres-data:/var/lib/postgresql/data \
-            -p 5432:5432 \
+            -p 5432:${{ vars.ANAL_POSTGRES_PORT }} \
             --restart unless-stopped \
             ${{ secrets.DOCKERHUB_USERNAME }}/1x-fit-postgres:${{ inputs.postgres_image_tag }}
 
