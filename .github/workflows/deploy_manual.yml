@@ -57,6 +57,24 @@ jobs:
           
           docker rm 1x-fit-bot || true
 
+    - name: Prepare PostgreSQL deployment
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.VM_HOST }}
+        username: ${{ secrets.VM_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          # Проверка наличия volume для PostgreSQL
+          docker volume inspect anal_postgres-data >/dev/null 2>&1 || docker volume create anal_postgres-data
+
+          # Обновление образа PostgreSQL
+          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/1x-fit-postgres:${{ inputs.postgres_image_tag }}
+
+          # Остановка и удаление старого контейнера PostgreSQL
+          docker stop 1x-fit-postgres || true
+          
+          docker rm 1x-fit-postgres || true
+
     - name: Prepare ETL deployment
       uses: appleboy/ssh-action@v1.0.0
       with:
@@ -77,24 +95,6 @@ jobs:
           docker stop 1x-fit-etl || true
           
           docker rm 1x-fit-etl || true
-
-    - name: Prepare PostgreSQL deployment
-      uses: appleboy/ssh-action@v1.0.0
-      with:
-        host: ${{ secrets.VM_HOST }}
-        username: ${{ secrets.VM_USER }}
-        key: ${{ secrets.SSH_PRIVATE_KEY }}
-        script: |
-          # Проверка наличия volume для PostgreSQL
-          docker volume inspect anal_postgres-data >/dev/null 2>&1 || docker volume create anal_postgres-data
-
-          # Обновление образа PostgreSQL
-          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/1x-fit-postgres:${{ inputs.postgres_image_tag }}
-
-          # Остановка и удаление старого контейнера PostgreSQL
-          docker stop 1x-fit-postgres || true
-          
-          docker rm 1x-fit-postgres || true
 
     - name: Deploy Bot
       uses: appleboy/ssh-action@v1.0.0
@@ -129,6 +129,40 @@ jobs:
             --restart unless-stopped \
             ${{ secrets.DOCKERHUB_USERNAME }}/1x-fit:${{ inputs.bot_image_tag }}
 
+    - name: Deploy PostgreSQL
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.VM_HOST }}
+        username: ${{ secrets.VM_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          # Запуск PostgreSQL контейнера
+          docker run -d \
+            --name 1x-fit-postgres \
+            --env POSTGRES_PASSWORD=${{ secrets.ANAL_POSTGRES_PASSWORD }} \
+            --env POSTGRES_USER=${{ secrets.ANAL_POSTGRES_USER }} \
+            --env POSTGRES_DB=${{ secrets.ANAL_POSTGRES_DB }} \
+            --volume anal_postgres-data:/var/lib/postgresql/data \
+            -p 5432:${{ vars.ANAL_POSTGRES_PORT }} \
+            --restart unless-stopped \
+            ${{ secrets.DOCKERHUB_USERNAME }}/1x-fit-postgres:${{ inputs.postgres_image_tag }}
+
+    - name: Connect PostgreSQL to datalens network
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.VM_HOST }}
+        username: ${{ secrets.VM_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          # Проверяем, существует ли сеть datalens_default
+          if docker network ls --format "{{.Name}}" | grep -q "^datalens_default$"; then
+            echo "Сеть datalens_default существует. Подключаю 1x-fit-postgres..."
+            docker network connect datalens_default 1x-fit-postgres
+          else
+            echo "Ошибка: сеть datalens_default не найдена. Убедитесь, что datalens запущен."
+            exit 1
+          fi
+
     - name: Deploy ETL
       uses: appleboy/ssh-action@v1.0.0
       with:
@@ -159,40 +193,6 @@ jobs:
           if docker network ls --format "{{.Name}}" | grep -q "^datalens_default$"; then
             echo "Сеть datalens_default существует. Подключаю 1x-fit-etl..."
             docker network connect datalens_default 1x-fit-etl
-          else
-            echo "Ошибка: сеть datalens_default не найдена. Убедитесь, что datalens запущен."
-            exit 1
-          fi
-
-    - name: Deploy PostgreSQL
-      uses: appleboy/ssh-action@v1.0.0
-      with:
-        host: ${{ secrets.VM_HOST }}
-        username: ${{ secrets.VM_USER }}
-        key: ${{ secrets.SSH_PRIVATE_KEY }}
-        script: |
-          # Запуск PostgreSQL контейнера
-          docker run -d \
-            --name 1x-fit-postgres \
-            --env POSTGRES_PASSWORD=${{ secrets.ANAL_POSTGRES_PASSWORD }} \
-            --env POSTGRES_USER=${{ secrets.ANAL_POSTGRES_USER }} \
-            --env POSTGRES_DB=${{ secrets.ANAL_POSTGRES_DB }} \
-            --volume anal_postgres-data:/var/lib/postgresql/data \
-            -p 5432:${{ vars.ANAL_POSTGRES_PORT }} \
-            --restart unless-stopped \
-            ${{ secrets.DOCKERHUB_USERNAME }}/1x-fit-postgres:${{ inputs.postgres_image_tag }}
-
-    - name: Connect PostgreSQL to datalens network
-      uses: appleboy/ssh-action@v1.0.0
-      with:
-        host: ${{ secrets.VM_HOST }}
-        username: ${{ secrets.VM_USER }}
-        key: ${{ secrets.SSH_PRIVATE_KEY }}
-        script: |
-          # Проверяем, существует ли сеть datalens_default
-          if docker network ls --format "{{.Name}}" | grep -q "^datalens_default$"; then
-            echo "Сеть datalens_default существует. Подключаю 1x-fit-postgres..."
-            docker network connect datalens_default 1x-fit-postgres
           else
             echo "Ошибка: сеть datalens_default не найдена. Убедитесь, что datalens запущен."
             exit 1
