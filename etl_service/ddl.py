@@ -22,7 +22,7 @@ CREATE_TABLE_WEIGHT_DATA = """
     CREATE TABLE IF NOT EXISTS weight_data (
         id SERIAL PRIMARY KEY,
         user_id BIGINT NOT NULL,
-        weight DECIMAL(3,1) NOT NULL,
+        weight DECIMAL(5,1) NOT NULL,
         date DATE NOT NULL,
         FOREIGN KEY (user_id) REFERENCES users (id),
         UNIQUE (user_id, date)
@@ -35,7 +35,7 @@ CREATE_TABLE_ACTIVITY_DATA = """
         user_id BIGINT NOT NULL,
         activity_id BIGINT NOT NULL,
         date DATE NOT NULL,
-        value DECIMAL(6,2) NOT NULL,
+        value DECIMAL(8,2) NOT NULL,
         calories INTEGER NOT NULL,
         FOREIGN KEY (user_id) REFERENCES users (id),
         FOREIGN KEY (activity_id) REFERENCES activities (id),
