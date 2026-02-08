@@ -8,9 +8,12 @@ import sys
 # Добавляем путь к корню проекта
 sys.path.append(str(pathlib.Path(__file__).parent.parent))
 
+from config import etl_settings
 from init_tables import init_analytics_tables
 from scheduler import run_etl_scheduler
 
+# Настройка уровня логирования
+logging.basicConfig(level=getattr(logging, etl_settings.log_min_level.upper()))
 logger = logging.getLogger(__name__)
 
 

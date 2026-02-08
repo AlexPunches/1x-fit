@@ -11,17 +11,17 @@ on:
         options:
         - production
       bot_image_tag:
-        description: 'Docker image tag to deploy (e.g., latest, main, sha-xxx)'
+        description: 'Bot image tag (e.g., latest, sha-xxx)'
         required: false
         default: 'latest'
         type: string
       postgres_image_tag:
-        description: 'PostgreSQL Docker image tag to deploy (e.g., latest, main, sha-xxx)'
+        description: 'PostgreSQL image tag (e.g., latest, sha-xxx)'
         required: false
         default: 'latest'
         type: string
       etl_image_tag:
-        description: 'PostgreSQL Docker image tag to deploy (e.g., latest, main, sha-xxx)'
+        description: 'ETL image tag (e.g., latest, sha-xxx)'
         required: false
         default: 'latest'
         type: string
@@ -70,10 +70,10 @@ jobs:
           # Проверка наличия volume для данных
           docker volume inspect bot-db-data >/dev/null 2>&1 || docker volume create bot-db-data
 
-          # Обновление образа бота
+          # Обновление образа ETL
           docker pull ${{ secrets.DOCKERHUB_USERNAME }}/1x-fit-etl:${{ inputs.bot_image_tag }}
 
-          # Остановка и удаление старого контейнера бота
+          # Остановка и удаление старого контейнера ETL
           docker stop 1x-fit-etl || true
           
           docker rm 1x-fit-etl || true
@@ -147,6 +147,22 @@ jobs:
             --volume bot-db-data:/app/data \
             --restart unless-stopped \
             ${{ secrets.DOCKERHUB_USERNAME }}/1x-fit-etl:${{ inputs.etl_image_tag }}
+
+    - name: Connect ETL to datalens network
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.VM_HOST }}
+        username: ${{ secrets.VM_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          # Проверяем, существует ли сеть datalens_default
+          if docker network ls --format "{{.Name}}" | grep -q "^datalens_default$"; then
+            echo "Сеть datalens_default существует. Подключаю 1x-fit-etl..."
+            docker network connect datalens_default 1x-fit-etl
+          else
+            echo "Ошибка: сеть datalens_default не найдена. Убедитесь, что datalens запущен."
+            exit 1
+          fi
 
     - name: Deploy PostgreSQL
       uses: appleboy/ssh-action@v1.0.0

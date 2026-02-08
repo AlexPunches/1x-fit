@@ -13,6 +13,7 @@ logger = logging.getLogger(__name__)
 
 def setup_periodic_etl() -> AsyncIOScheduler:
     """Настройка периодического выполнения ETL процесса."""
+    logger.debug("Настройка планировщика ETL процесса")
     scheduler = AsyncIOScheduler()
 
     # Добавление задания на выполнение ETL с интервалом из настроек
@@ -31,6 +32,7 @@ def setup_periodic_etl() -> AsyncIOScheduler:
         "Планировщик ETL процесса запущен. ETL будет выполняться каждые %s минут(ы).",
         etl_settings.interval_minutes,
     )
+    logger.debug(f"Детали планировщика: интервал={etl_settings.interval_minutes} мин, размер пакета={etl_settings.batch_size}")
 
     return scheduler
 

@@ -17,6 +17,9 @@ class ETLSettings(BaseSettings):
     # Интервал выполнения ETL в минутах
     interval_minutes: int = Field(default=3, description="Интервал выполнения ETL в минутах")
 
+    # Минимальный уровень логирования
+    log_min_level: str = Field(default="INFO", description="Уровень логирования (DEBUG, INFO, WARNING, ERROR)")
+
     # Anal DB
     anal_postgres_db: str | None = None
     anal_postgres_user: str | None = None

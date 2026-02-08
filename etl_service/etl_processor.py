@@ -22,27 +22,53 @@ class ETLProcessor:
     async def connect_to_sources(self) -> None:
         """Подключение к исходной и целевой базам данных."""
         # Подключение к исходной SQLite базе
+        logger.debug(f"Подключение к исходной базе данных: {etl_settings.database_path}")
         self.source_conn = sqlite3.connect(etl_settings.database_path)
+        logger.debug("Успешное подключение к исходной базе данных")
 
         # Подключение к целевой PostgreSQL базе
         if not etl_settings.anal_postgres_db:
             error_msg = "Не задана строка подключения к аналитической БД"
             raise ValueError(error_msg)
 
-        self.target_conn = await asyncpg.connect(
-            host=etl_settings.anal_postgres_host or "localhost",
-            port=etl_settings.anal_postgres_port or 5432,
-            user=etl_settings.anal_postgres_user,
-            password=etl_settings.anal_postgres_password,
-            database=etl_settings.anal_postgres_db,
-        )
+        # Логирование параметров подключения к целевой БД
+        logger.info(f"Подключение к целевой аналитической БД: host={etl_settings.anal_postgres_host or 'localhost'}, "
+                    f"port={etl_settings.anal_postgres_port or 5432}, "
+                    f"user={etl_settings.anal_postgres_user}, "
+                    f"database={etl_settings.anal_postgres_db}")
+        
+        logger.debug(f"Детали подключения к целевой БД: host_raw={etl_settings.anal_postgres_host}, "
+                     f"port_raw={etl_settings.anal_postgres_port}, "
+                     f"user_raw={etl_settings.anal_postgres_user}, "
+                     f"password_present={bool(etl_settings.anal_postgres_password)}, "
+                     f"database_raw={etl_settings.anal_postgres_db}")
+
+        try:
+            self.target_conn = await asyncpg.connect(
+                host=etl_settings.anal_postgres_host or "localhost",
+                port=etl_settings.anal_postgres_port or 5432,
+                user=etl_settings.anal_postgres_user,
+                password=etl_settings.anal_postgres_password,
+                database=etl_settings.anal_postgres_db,
+            )
+            
+            logger.debug("Успешное подключение к целевой аналитической БД")
+        except Exception as e:
+            logger.error(f"Ошибка подключения к целевой аналитической БД: {str(e)}")
+            logger.error(f"Проверьте настройки подключения: host={etl_settings.anal_postgres_host}, "
+                         f"port={etl_settings.anal_postgres_port}, "
+                         f"user={etl_settings.anal_postgres_user}, "
+                         f"database={etl_settings.anal_postgres_db}")
+            raise
 
     async def disconnect_from_sources(self) -> None:
         """Закрытие соединений."""
         if self.source_conn:
             self.source_conn.close()
+            logger.debug("Соединение с исходной базой данных закрыто")
         if self.target_conn:
             await self.target_conn.close()
+            logger.debug("Соединение с целевой аналитической БД закрыто")
 
     async def get_users_from_source(self) -> list[dict[str, typing.Any]]:
         """Получение пользователей из исходной базы данных."""
