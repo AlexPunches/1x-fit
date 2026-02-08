@@ -11,15 +11,16 @@ from etl_processor import run_etl_process
 logger = logging.getLogger(__name__)
 
 
-async def run_etl_process_wrapper():
-    """Обертка для запуска асинхронной функции в планировщике."""
-    await run_etl_process()
+run_etl_process_wrapper = run_etl_process  # Просто присваиваем асинхронную функцию напрямую
 
 
 def setup_periodic_etl() -> AsyncIOScheduler:
     """Настройка периодического выполнения ETL процесса."""
     logger.debug("Настройка планировщика ETL процесса")
     scheduler = AsyncIOScheduler()
+
+    # Запуск планировщика
+    scheduler.start()
 
     # Добавление задания на выполнение ETL с интервалом из настроек
     scheduler.add_job(
@@ -28,11 +29,7 @@ def setup_periodic_etl() -> AsyncIOScheduler:
         id="etl_job",
         name="ETL процесс для загрузки данных в витрину",
         replace_existing=True,
-        executor='asyncio'  # Указываем, что задача асинхронная
     )
-
-    # Запуск планировщика
-    scheduler.start()
 
     logger.info(
         "Планировщик ETL процесса запущен. ETL будет выполняться каждые %s минут(ы).",
