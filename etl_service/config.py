@@ -1,4 +1,5 @@
 """Конфигурация ETL сервиса."""
+import logging
 import pathlib
 
 from pydantic import Field
@@ -33,3 +34,13 @@ class ETLSettings(BaseSettings):
 
 # Глобальный экземпляр настроек
 etl_settings = ETLSettings()
+
+
+def setup_logging():
+    """Настройка формата и уровня логирования."""
+    log_format = "%(asctime)s | %(name)s | %(levelname)s | %(message)s | %(filename)s:%(lineno)d"
+    logging.basicConfig(level=getattr(logging, etl_settings.log_min_level.upper()), format=log_format)
+
+
+# Автоматическая настройка логирования при импорте модуля
+setup_logging()
