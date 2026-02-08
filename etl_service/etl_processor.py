@@ -7,35 +7,34 @@ from datetime import date
 from decimal import Decimal
 
 import asyncpg
-from etl_service.config import etl_settings
-from etl_service.models import Activity, ActivityData, User, WeightData
-from settings import settings
+from config import etl_settings
+from models import Activity, ActivityData, User, WeightData
 
 logger = logging.getLogger(__name__)
 
 
 class ETLProcessor:
     def __init__(self, batch_size: int | None = None) -> None:
-        self.source_conn = None
+        self.source_conn: sqlite3.Connection | None = None
         self.target_conn = None
         self.batch_size = batch_size or etl_settings.batch_size
 
     async def connect_to_sources(self) -> None:
         """Подключение к исходной и целевой базам данных."""
         # Подключение к исходной SQLite базе
-        self.source_conn = sqlite3.connect(settings.database_path)
+        self.source_conn = sqlite3.connect(etl_settings.database_path)
 
         # Подключение к целевой PostgreSQL базе
-        if not settings.anal_postgres_db:
+        if not etl_settings.anal_postgres_db:
             error_msg = "Не задана строка подключения к аналитической БД"
             raise ValueError(error_msg)
 
         self.target_conn = await asyncpg.connect(
-            host=settings.anal_postgres_host or "localhost",
-            port=settings.anal_postgres_port or 5432,
-            user=settings.anal_postgres_user,
-            password=settings.anal_postgres_password,
-            database=settings.anal_postgres_db,
+            host=etl_settings.anal_postgres_host or "localhost",
+            port=etl_settings.anal_postgres_port or 5432,
+            user=etl_settings.anal_postgres_user,
+            password=etl_settings.anal_postgres_password,
+            database=etl_settings.anal_postgres_db,
         )
 
     async def disconnect_from_sources(self) -> None:

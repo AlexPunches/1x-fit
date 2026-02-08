@@ -3,25 +3,25 @@
 import logging
 
 import asyncpg
-from etl_service.ddl import ALL_DDL_COMMANDS
-from settings import settings
+from config import etl_settings
+from ddl import ALL_DDL_COMMANDS
 
 logger = logging.getLogger(__name__)
 
 
 async def init_analytics_tables() -> None:
     """Инициализация таблиц в витрине данных."""
-    if not settings.anal_postgres_db:
+    if not etl_settings.anal_postgres_db:
         error_msg = "Не задана строка подключения к аналитической БД"
         raise ValueError(error_msg)
 
     # Подключение к PostgreSQL
     conn = await asyncpg.connect(
-        host=settings.anal_postgres_host or "localhost",
-        port=settings.anal_postgres_port or 5432,
-        user=settings.anal_postgres_user,
-        password=settings.anal_postgres_password,
-        database=settings.anal_postgres_db,
+        host=etl_settings.anal_postgres_host or "localhost",
+        port=etl_settings.anal_postgres_port or 5432,
+        user=etl_settings.anal_postgres_user,
+        password=etl_settings.anal_postgres_password,
+        database=etl_settings.anal_postgres_db,
     )
 
     try:

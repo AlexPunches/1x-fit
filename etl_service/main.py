@@ -2,14 +2,14 @@
 
 import asyncio
 import logging
+import pathlib
 import sys
-from pathlib import Path
 
 # Добавляем путь к корню проекта
-sys.path.append(str(Path(__file__).parent.parent))
+sys.path.append(str(pathlib.Path(__file__).parent.parent))
 
-from etl_service.init_tables import init_analytics_tables
-from etl_service.scheduler import run_etl_scheduler
+from init_tables import init_analytics_tables
+from scheduler import run_etl_scheduler
 
 logger = logging.getLogger(__name__)
 

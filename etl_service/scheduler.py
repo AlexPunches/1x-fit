@@ -5,8 +5,8 @@ import logging
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
-from etl_service.config import etl_settings
-from etl_service.etl_processor import run_etl_process
+from config import etl_settings
+from etl_processor import run_etl_process
 
 logger = logging.getLogger(__name__)
 
