@@ -136,7 +136,7 @@ jobs:
             --env ANAL_POSTGRES_DB=${{ secrets.ANAL_POSTGRES_DB }} \
             --env ANAL_POSTGRES_USER=${{ secrets.ANAL_POSTGRES_USER }} \
             --env ANAL_POSTGRES_PASSWORD=${{ secrets.ANAL_POSTGRES_PASSWORD }} \
-            --env ANAL_POSTGRES_PORT=${{ vars.ANAL_POSTGRES_PORT }} \
+            --env ANAL_POSTGRES_PORT=${{ vars.INTERNAL_ANAL_POSTGRES_PORT }} \
             --env ANAL_POSTGRES_HOST=${{ vars.ANAL_POSTGRES_HOST }} \
             -p 8000:8000 \
             --volume bot-db-data:/app/data \
@@ -159,7 +159,7 @@ jobs:
             --env POSTGRES_USER=${{ secrets.ANAL_POSTGRES_USER }} \
             --env POSTGRES_DB=${{ secrets.ANAL_POSTGRES_DB }} \
             --volume anal_postgres-data:/var/lib/postgresql/data \
-            -p ${{ vars.ANAL_POSTGRES_PORT }}:5432 \
+            -p ${{ vars.EXTERNAL_ANAL_POSTGRES_PORT }}:${{ vars.INTERNAL_ANAL_POSTGRES_PORT }} \
             --restart unless-stopped \
             ${{ secrets.DOCKERHUB_USERNAME }}/1x-fit-postgres:${{ inputs.postgres_image_tag }}
 
@@ -178,7 +178,7 @@ jobs:
             --env ETL_ANAL_POSTGRES_DB=${{ secrets.ANAL_POSTGRES_DB }} \
             --env ETL_ANAL_POSTGRES_USER=${{ secrets.ANAL_POSTGRES_USER }} \
             --env ETL_ANAL_POSTGRES_PASSWORD=${{ secrets.ANAL_POSTGRES_PASSWORD }} \
-            --env ETL_ANAL_POSTGRES_PORT=${{ vars.ANAL_POSTGRES_PORT }} \
+            --env ETL_ANAL_POSTGRES_PORT=${{ vars.INTERNAL_ANAL_POSTGRES_PORT }} \
             --env ETL_ANAL_POSTGRES_HOST=${{ vars.ANAL_POSTGRES_HOST }} \
             --volume bot-db-data:/app/data \
             --restart unless-stopped \
