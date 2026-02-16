@@ -8,7 +8,8 @@ from decimal import Decimal
 
 import asyncpg
 from config import etl_settings
-from models import Activity, ActivityData, User, WeightData
+from calculations import calculate_current_point, calculate_target_point
+from models import Activity, ActivityData, User, UserProgress, WeightData
 
 logger = logging.getLogger(__name__)
 
@@ -155,6 +156,29 @@ class ETLProcessor:
         records = await self.target_conn.fetch("SELECT user_id, activity_id, date FROM activity_data")
         return {(record["user_id"], record["activity_id"], record["date"]) for record in records}
 
+    async def get_user_progress_from_source(self) -> list[dict[str, typing.Any]]:
+        """Получение данных о прогрессе пользователей из исходной базы данных."""
+        cursor = self.source_conn.cursor()
+        cursor.execute("""
+            SELECT u.id, u.start_weight, u.target_weight, u.height,
+                   (SELECT weight FROM weight_records 
+                    WHERE user_id = u.id 
+                    ORDER BY record_date DESC 
+                    LIMIT 1) as current_weight
+            FROM users u
+        """)
+        rows = cursor.fetchall()
+        return [
+            {
+                "user_id": row[0],
+                "start_weight": row[1],
+                "target_weight": row[2],
+                "height": row[3],
+                "current_weight": row[4],
+            }
+            for row in rows
+        ]
+
     async def insert_users_to_target(self, users: list[User]) -> None:
         """Вставка пользователей в целевую базу."""
         if not users:
@@ -222,6 +246,25 @@ class ETLProcessor:
             INSERT INTO activity_data (user_id, activity_id, date, value, calories)
             VALUES ($1, $2, $3, $4, $5)
             ON CONFLICT (user_id, activity_id, date) DO NOTHING
+        """, values)
+
+    async def insert_user_progress_to_target(self, user_progress: list[UserProgress]) -> None:
+        """Вставка данных о прогрессе пользователей в целевую базу."""
+        if not user_progress:
+            return
+
+        # Подготовка данных для вставки
+        values = [
+            (up.user_id, up.target_point, up.current_point)
+            for up in user_progress
+        ]
+
+        await self.target_conn.executemany("""
+            INSERT INTO user_progress (user_id, target_point, current_point)
+            VALUES ($1, $2, $3)
+            ON CONFLICT (user_id) DO UPDATE SET
+                target_point = EXCLUDED.target_point,
+                current_point = EXCLUDED.current_point
         """, values)
 
     async def extract_transform_load(self) -> None:
@@ -338,10 +381,43 @@ class ETLProcessor:
                 del source_activity_data
                 del new_activity_data
 
+            # Обработка данных о прогрессе пользователей
+            source_user_progress = await self.get_user_progress_from_source()
+
+            # Расчет и преобразование прогресса пользователей
+            user_progress_list = []
+            for user_data in source_user_progress:
+                # Пропускаем пользователей без текущего веса
+                if user_data["current_weight"] is None:
+                    continue
+
+                target_point = Decimal(str(calculate_target_point(
+                    start_weight=user_data["start_weight"],
+                    height=user_data["height"] or 170.0,  # используем значение по умолчанию
+                    target_weight=user_data["target_weight"],
+                )))
+
+                current_point = Decimal(str(calculate_current_point(
+                    start_weight=user_data["start_weight"],
+                    current_weight=user_data["current_weight"],
+                    height=user_data["height"] or 170.0,  # используем значение по умолчанию
+                    target_weight=user_data["target_weight"],
+                )))
+
+                user_progress_list.append(UserProgress(
+                    user_id=user_data["user_id"],
+                    target_point=target_point,
+                    current_point=current_point,
+                ))
+
+            # Загрузка данных о прогрессе в целевую базу
+            await self.insert_user_progress_to_target(user_progress_list)
+
             logger.info(
-                "ETL процесс завершен. Всего загружено: %s записей веса, %s записей активности.",
+                "ETL процесс завершен. Всего загружено: %s записей веса, %s записей активности, %s записей прогресса.",
                 total_weight_loaded,
                 total_activity_loaded,
+                len(user_progress_list),
             )
 
         finally:

@@ -52,6 +52,19 @@ CREATE_INDEX_ACTIVITY_DATA_USER_DATE = """
     CREATE INDEX IF NOT EXISTS idx_activity_data_user_date ON activity_data (user_id, date)
 """
 
+CREATE_TABLE_USER_PROGRESS = """
+    CREATE TABLE IF NOT EXISTS user_progress (
+        user_id BIGINT PRIMARY KEY,
+        target_point DECIMAL(10,4) NOT NULL,
+        current_point DECIMAL(10,4) NOT NULL,
+        FOREIGN KEY (user_id) REFERENCES users (id)
+    )
+"""
+
+CREATE_INDEX_USER_PROGRESS_USER = """
+    CREATE INDEX IF NOT EXISTS idx_user_progress_user ON user_progress (user_id)
+"""
+
 
 # Список всех DDL команд для инициализации
 ALL_DDL_COMMANDS: list[str] = [
@@ -59,6 +72,8 @@ ALL_DDL_COMMANDS: list[str] = [
     CREATE_TABLE_ACTIVITIES,
     CREATE_TABLE_WEIGHT_DATA,
     CREATE_TABLE_ACTIVITY_DATA,
+    CREATE_TABLE_USER_PROGRESS,
     CREATE_INDEX_WEIGHT_DATA_USER_DATE,
     CREATE_INDEX_ACTIVITY_DATA_USER_DATE,
+    CREATE_INDEX_USER_PROGRESS_USER,
 ]
