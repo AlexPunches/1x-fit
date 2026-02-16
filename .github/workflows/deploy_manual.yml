@@ -96,6 +96,21 @@ jobs:
           
           docker rm 1x-fit-etl || true
 
+    - name: Create application network
+      uses: appleboy/ssh-action@v1.0.0
+      with:
+        host: ${{ secrets.VM_HOST }}
+        username: ${{ secrets.VM_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          # Создаем сеть только если её нет
+          if ! docker network inspect 1xfit_net >/dev/null 2>&1; then
+            echo "Creating Docker network '1xfit_net'..."
+            docker network create 1xfit_net
+          else
+            echo "Network '1xfit_net' already exists"
+          fi
+
     - name: Deploy Bot
       uses: appleboy/ssh-action@v1.0.0
       with:
@@ -106,7 +121,7 @@ jobs:
           # Запуск основного контейнера бота
           docker run -d \
             --name 1x-fit-bot \
-            --network datalens_default \
+            --network 1xfit_net \
             --env BOT_TOKEN=${{ secrets.BOT_TOKEN }} \
             --env ADMIN_ID=${{ secrets.ADMIN_ID }} \
             --env WEBHOOK_URL=${{ vars.WEBHOOK_URL }} \
@@ -139,29 +154,14 @@ jobs:
           # Запуск PostgreSQL контейнера
           docker run -d \
             --name 1x-fit-postgres \
+            --network 1xfit_net \
             --env POSTGRES_PASSWORD=${{ secrets.ANAL_POSTGRES_PASSWORD }} \
             --env POSTGRES_USER=${{ secrets.ANAL_POSTGRES_USER }} \
             --env POSTGRES_DB=${{ secrets.ANAL_POSTGRES_DB }} \
             --volume anal_postgres-data:/var/lib/postgresql/data \
-            -p 5432:${{ vars.ANAL_POSTGRES_PORT }} \
+            -p ${{ vars.ANAL_POSTGRES_PORT }}:5432 \
             --restart unless-stopped \
             ${{ secrets.DOCKERHUB_USERNAME }}/1x-fit-postgres:${{ inputs.postgres_image_tag }}
-
-    - name: Connect PostgreSQL to datalens network
-      uses: appleboy/ssh-action@v1.0.0
-      with:
-        host: ${{ secrets.VM_HOST }}
-        username: ${{ secrets.VM_USER }}
-        key: ${{ secrets.SSH_PRIVATE_KEY }}
-        script: |
-          # Проверяем, существует ли сеть datalens_default
-          if docker network ls --format "{{.Name}}" | grep -q "^datalens_default$"; then
-            echo "Сеть datalens_default существует. Подключаю 1x-fit-postgres..."
-            docker network connect datalens_default 1x-fit-postgres
-          else
-            echo "Ошибка: сеть datalens_default не найдена. Убедитесь, что datalens запущен."
-            exit 1
-          fi
 
     - name: Deploy ETL
       uses: appleboy/ssh-action@v1.0.0
@@ -173,6 +173,7 @@ jobs:
           # Запуск ETL контейнера
           docker run -d \
             --name 1x-fit-etl \
+            --network 1xfit_net \
             --env ETL_INTERVAL_MINUTES=${{ vars.ETL_INTERVAL_MINUTES }} \
             --env ETL_ANAL_POSTGRES_DB=${{ secrets.ANAL_POSTGRES_DB }} \
             --env ETL_ANAL_POSTGRES_USER=${{ secrets.ANAL_POSTGRES_USER }} \
@@ -182,22 +183,6 @@ jobs:
             --volume bot-db-data:/app/data \
             --restart unless-stopped \
             ${{ secrets.DOCKERHUB_USERNAME }}/1x-fit-etl:${{ inputs.etl_image_tag }}
-
-    - name: Connect ETL to datalens network
-      uses: appleboy/ssh-action@v1.0.0
-      with:
-        host: ${{ secrets.VM_HOST }}
-        username: ${{ secrets.VM_USER }}
-        key: ${{ secrets.SSH_PRIVATE_KEY }}
-        script: |
-          # Проверяем, существует ли сеть datalens_default
-          if docker network ls --format "{{.Name}}" | grep -q "^datalens_default$"; then
-            echo "Сеть datalens_default существует. Подключаю 1x-fit-etl..."
-            docker network connect datalens_default 1x-fit-etl
-          else
-            echo "Ошибка: сеть datalens_default не найдена. Убедитесь, что datalens запущен."
-            exit 1
-          fi
 
     - name: Check deployment status
       uses: appleboy/ssh-action@v1.0.0
