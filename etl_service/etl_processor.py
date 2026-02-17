@@ -255,16 +255,17 @@ class ETLProcessor:
 
         # Подготовка данных для вставки
         values = [
-            (up.user_id, up.target_point, up.current_point)
+            (up.user_id, up.target_point, up.current_point, up.lost_weight)
             for up in user_progress
         ]
 
         await self.target_conn.executemany("""
-            INSERT INTO user_progress (user_id, target_point, current_point)
-            VALUES ($1, $2, $3)
+            INSERT INTO user_progress (user_id, target_point, current_point, lost_weight)
+            VALUES ($1, $2, $3, $4)
             ON CONFLICT (user_id) DO UPDATE SET
                 target_point = EXCLUDED.target_point,
-                current_point = EXCLUDED.current_point
+                current_point = EXCLUDED.current_point,
+                lost_weight = EXCLUDED.lost_weight
         """, values)
 
     async def extract_transform_load(self) -> None:
@@ -408,7 +409,7 @@ class ETLProcessor:
                     user_id=user_data["user_id"],
                     target_point=target_point,
                     current_point=current_point,
-                    lost_weight=user_data["start_weight"] - user_data["current_weight"],
+                    lost_weight=user_data["current_weight"] - user_data["start_weight"],
                 ))
 
             # Загрузка данных о прогрессе в целевую базу
