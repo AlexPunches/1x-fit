@@ -408,6 +408,7 @@ class ETLProcessor:
                     user_id=user_data["user_id"],
                     target_point=target_point,
                     current_point=current_point,
+                    lost_weight=user_data["start_weight"] - user_data["current_weight"],
                 ))
 
             # Загрузка данных о прогрессе в целевую базу

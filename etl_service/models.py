@@ -50,3 +50,4 @@ class UserProgress:
     user_id: int
     target_point: Decimal
     current_point: Decimal
+    lost_weight: Decimal

@@ -57,6 +57,7 @@ CREATE_TABLE_USER_PROGRESS = """
         user_id BIGINT PRIMARY KEY,
         target_point DECIMAL(10,4) NOT NULL,
         current_point DECIMAL(10,4) NOT NULL,
+        lost_weight DECIMAL(10,4),
         FOREIGN KEY (user_id) REFERENCES users (id)
     )
 """
