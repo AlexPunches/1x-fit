@@ -289,32 +289,42 @@ async def process_activity_value(message: Message, state: FSMContext) -> None:
 
 @router.message(F.text.contains("Ходьба") | F.text.contains("Бег") | F.text.contains("Велосипед") | F.text.contains("Кардио"))
 async def quick_activity_selection(message: Message, state: FSMContext) -> None:
-    """Быстрый выбор активности через клавиатуру."""
+    """Быстрый выбор активности через клавиатуру. Работает в любой момент."""
     activity_text = message.text
+    user_id = message.from_user.id if message.from_user else 0
 
-    # Определяем тип активности по тексту
+    # Определяем тип активности по ключевым словам
     activity_mapping = {
-        "Ходьба (шаги)": "walking",
-        "Бег (время в минутах)": "running",
-        "Велосипед (расстояние в км)": "cycling",
-        "Кардио (калории)": "cardio",
+        "Ходьба": ("walking", "steps"),
+        "Бег": ("running", "minutes"),
+        "Велосипед": ("cycling", "km"),
+        "Кардио": ("cardio", "kcal"),
     }
 
-    if activity_text in activity_mapping:
-        # Получаем ID типа активности
-        activity_name = activity_mapping[activity_text]
+    # Ищем совпадение по ключевому слову
+    selected_activity = None
+    for keyword, (activity_name, unit) in activity_mapping.items():
+        if keyword in activity_text:
+            selected_activity = (activity_name, unit, activity_text)
+            break
+
+    if selected_activity:
+        activity_name, unit, activity_text = selected_activity
+
+        logger.debug("Пользователь %s выбрал активность: %s (%s)", user_id, activity_name, activity_text)
 
         conn = sqlite3.connect(DATABASE_PATH)
         cursor = conn.cursor()
 
-        cursor.execute("SELECT id, unit FROM activity_types WHERE name = ?", (activity_name,))
+        cursor.execute("SELECT id FROM activity_types WHERE name = ?", (activity_name,))
         result = cursor.fetchone()
 
         if result:
-            activity_id, unit = result
+            activity_id = result[0]
 
             # Сохраняем выбранный тип активности во временные данные
-            await state.update_data(activity_type_id=activity_id, activity_name=activity_name, unit=unit)
+            # Перезаписываем предыдущие данные, чтобы можно было сменить активность
+            await state.set_data(data={"activity_type_id": activity_id, "activity_name": activity_name, "unit": unit})
 
             conn.close()
 
@@ -324,7 +334,5 @@ async def quick_activity_selection(message: Message, state: FSMContext) -> None:
             # Переходим к следующему состоянию
             await state.set_state(ActivityStates.waiting_for_value)
         else:
+            logger.error("Активность '%s' не найдена в базе данных", activity_name)
             await message.answer(msg.ACTIVITY_SELECTION_ERROR)
-    else:
-        # Если это не выбор активности, возможно это значение - игнорируем
-        pass
