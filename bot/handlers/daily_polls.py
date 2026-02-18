@@ -1,25 +1,32 @@
-# bot/handlers/daily_polls.py
-
 import logging
 import sqlite3
 from datetime import UTC, datetime
 
 import utils.messages as msg
 from aiogram import F, Router
-from aiogram.filters import Command, StateFilter
+from aiogram.filters import Command
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import KeyboardButton, Message, ReplyKeyboardMarkup
 from database.models import DATABASE_PATH
-from utils.calculations import ScoreCalculationParams, calculate_final_score
 
 logger = logging.getLogger(__name__)
 
 router = Router()
 
 
+# Состояния для FSM
+class ActivityStates(StatesGroup):
+    waiting_for_activity_type = State()
+    waiting_for_value = State()
+
+
+class WeightStates(StatesGroup):
+    waiting_for_weight = State()
+
+
 @router.message(Command("weight"))
-async def cmd_weight(message: Message) -> None:
+async def cmd_weight(message: Message, state: FSMContext) -> None:
     """Обработка команды /weight - ввод текущего веса."""
     user_id = message.from_user.id if message.from_user and message.from_user.id is not None else 0
 
@@ -37,17 +44,20 @@ async def cmd_weight(message: Message) -> None:
 
     conn.close()
 
+    # Устанавливаем состояние ожидания ввода веса
+    await state.set_state(WeightStates.waiting_for_weight)
     await message.answer(msg.WEIGHT_INPUT_REQUEST)
 
 
-@router.message(F.text.func(lambda x: x.replace(".", "", 1).isdigit()), StateFilter(None))
-async def process_weight_input(message: Message) -> None:
+@router.message(WeightStates.waiting_for_weight, F.text.func(lambda x: x.replace(",", ".", 1).replace(".", "", 1).isdigit()))
+async def process_weight_input(message: Message, state: FSMContext) -> None:
     """Обработка ввода веса."""
     user_id_debug = message.from_user.id if message.from_user and message.from_user.id is not None else "unknown"
     logger.debug(msg.LOG_RECEIVED_NUMERIC_MESSAGE_SS, message.text, user_id_debug)
 
     try:
-        weight = float(message.text) if message.text is not None else 0.0
+        # Заменяем запятую на точку для корректного преобразования
+        weight = float(message.text.replace(",", ".")) if message.text is not None else 0.0
         user_id_debug = message.from_user.id if message.from_user and message.from_user.id is not None else "unknown"
         logger.debug(msg.LOG_DETECTED_WEIGHT_SS, weight, user_id_debug)
 
@@ -81,26 +91,6 @@ async def process_weight_input(message: Message) -> None:
 
         user_data = cursor.fetchone()
 
-        if user_data:
-            start_weight, target_weight, height = user_data
-
-            # Рассчитываем прогресс
-            params = ScoreCalculationParams(
-                start_weight=start_weight,
-                current_weight=weight,
-                height=height,
-                target_weight=target_weight,
-                user_id=user_id,
-                db_path=str(DATABASE_PATH),
-            )
-            progress_score = calculate_final_score(params)
-
-            # Сохраняем прогресс в базу
-            cursor.execute("""
-                INSERT INTO progress (user_id, progress_points, calculation_date)
-                VALUES (?, ?, ?)
-            """, (user_id, progress_score, datetime.now(UTC).strftime("%Y-%m-%d %H:%M:%S")))
-
         conn.commit()
         conn.close()
         logger.debug(msg.LOG_WEIGHT_SAVED_SS, weight, user_id)
@@ -131,9 +121,14 @@ async def process_weight_input(message: Message) -> None:
         else:
             await message.answer(msg.WEIGHT_SAVED_S.format(weight))
 
+        # Сбрасываем состояние после успешного ввода веса
+        await state.clear()
+
     except ValueError:
         # Если текст не является числом, не обрабатываем как вес
         logger.debug("Сообщение '%s' не является числом, пропускаем обработку", message.text)
+        # Не сбрасываем состояние, даём пользователю возможность повторить ввод
+        await message.answer(msg.INVALID_WEIGHT_INPUT)
 
 
 @router.message(Command("activity"))
@@ -180,14 +175,6 @@ async def cmd_activity(message: Message) -> None:
     conn.close()
 
 
-# Состояния для FSM
-
-
-class ActivityStates(StatesGroup):
-    waiting_for_activity_type = State()
-    waiting_for_value = State()
-
-
 @router.message(ActivityStates.waiting_for_activity_type)
 async def process_activity_type_selection(message: Message, state: FSMContext) -> None:
     """Обработка выбора типа активности."""
@@ -226,7 +213,8 @@ async def process_activity_value(message: Message, state: FSMContext) -> None:
     logger.debug(msg.LOG_RECEIVED_ACTIVITY_VALUE_SS, message.text, user_id_debug)
 
     try:
-        value = float(message.text) if message.text is not None else 0.0
+        # Заменяем запятую на точку для корректного преобразования
+        value = float(message.text.replace(",", ".")) if message.text is not None else 0.0
         user_id = message.from_user.id if message.from_user and message.from_user.id is not None else 0
 
         # Получаем сохраненные данные
@@ -298,6 +286,7 @@ async def process_activity_value(message: Message, state: FSMContext) -> None:
     except ValueError:
         logger.debug("Значение '%s' не является числом для активности", message.text)
         await message.answer(msg.INVALID_ACTIVITY_VALUE_INPUT)
+        # Не сбрасываем состояние, даём пользователю возможность повторить ввод
 
 
 @router.message(F.text.contains("Ходьба") | F.text.contains("Бег") | F.text.contains("Велосипед") | F.text.contains("Кардио"))
