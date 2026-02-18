@@ -1,10 +1,15 @@
 import pathlib
 
 from pydantic import Field
-from pydantic_settings import BaseSettings
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        case_sensitive=False,
+        extra="ignore"
+    )
+
     # Bot configuration
     base_path: pathlib.Path = pathlib.Path(__file__).parent.absolute()
 
@@ -33,10 +38,6 @@ class Settings(BaseSettings):
 
     # Logging configuration
     log_min_level: str = Field("INFO", description="Minimum logging level (DEBUG, INFO, WARNING, ERROR)")
-
-    class Config:
-        env_file = ".env"
-        case_sensitive = False
 
 
 # Create a global instance of settings
