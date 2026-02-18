@@ -41,3 +41,13 @@ class ActivityData:
     date: date
     value: Decimal
     calories: int
+
+
+@dataclass
+class UserProgress:
+    """Модель прогресса пользователя."""
+
+    user_id: int
+    target_point: Decimal
+    current_point: Decimal
+    lost_weight: Decimal
