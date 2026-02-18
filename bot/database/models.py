@@ -78,20 +78,11 @@ def init_db() -> None:
         )
     """)
 
-    # Создание таблицы прогресса
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS progress (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            user_id INTEGER NOT NULL,
-            progress_points REAL NOT NULL,
-            calculation_date TEXT DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (user_id) REFERENCES users (id)
-        )
-    """)
-
     # Индексы для улучшения производительности
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_weight_records_user_date ON weight_records (user_id, record_date)")
-    cursor.execute("CREATE INDEX IF NOT EXISTS idx_activity_records_user_date ON activity_records (user_id, record_date)")
+    cursor.execute(
+        "CREATE INDEX IF NOT EXISTS idx_activity_records_user_date ON activity_records (user_id, record_date)",
+    )
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_weight_records_date ON weight_records (record_date)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_activity_records_date ON activity_records (record_date)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_activity_records_type ON activity_records (activity_type_id)")
