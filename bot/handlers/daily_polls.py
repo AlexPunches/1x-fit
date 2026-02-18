@@ -89,8 +89,6 @@ async def process_weight_input(message: Message, state: FSMContext) -> None:
             WHERE id = ?
         """, (user_id,))
 
-        user_data = cursor.fetchone()
-
         conn.commit()
         conn.close()
         logger.debug(msg.LOG_WEIGHT_SAVED_SS, weight, user_id)

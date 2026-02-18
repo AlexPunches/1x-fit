@@ -81,7 +81,7 @@ def init_db() -> None:
     # Индексы для улучшения производительности
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_weight_records_user_date ON weight_records (user_id, record_date)")
     cursor.execute(
-        "CREATE INDEX IF NOT EXISTS idx_activity_records_user_date ON activity_records (user_id, record_date)"
+        "CREATE INDEX IF NOT EXISTS idx_activity_records_user_date ON activity_records (user_id, record_date)",
     )
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_weight_records_date ON weight_records (record_date)")
     cursor.execute("CREATE INDEX IF NOT EXISTS idx_activity_records_date ON activity_records (record_date)")
