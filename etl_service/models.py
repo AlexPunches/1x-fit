@@ -1,8 +1,15 @@
 """Модели данных для ETL процесса."""
 
 import dataclasses
-import decimal
-from datetime import date
+from datetime import date  # noqa: TC003
+from decimal import Decimal  # noqa: TC003
+
+__all__ = [
+    "ExtractedUserData",
+    "SourceUser",
+    "SourceWeightRecord",
+    "TransformedUserData",
+]
 
 
 @dataclasses.dataclass
@@ -11,9 +18,9 @@ class SourceUser:
 
     id: int
     username: str
-    start_weight: decimal.Decimal | None
-    target_weight: decimal.Decimal | None
-    height: decimal.Decimal | None
+    start_weight: Decimal | None
+    target_weight: Decimal | None
+    height: Decimal | None
 
 
 @dataclasses.dataclass
@@ -21,7 +28,7 @@ class SourceWeightRecord:
     """Запись о весе из исходной БД SQLite."""
 
     user_id: int
-    weight: decimal.Decimal
+    weight: Decimal
     record_date: date
 
 
@@ -31,10 +38,10 @@ class ExtractedUserData:
 
     id: int
     nickname: str
-    start_weight: decimal.Decimal
-    target_weight: decimal.Decimal
-    height: decimal.Decimal
-    current_weight: decimal.Decimal | None  # Может быть None, если нет записей о весе
+    start_weight: Decimal
+    target_weight: Decimal
+    height: Decimal
+    current_weight: Decimal | None
 
 
 @dataclasses.dataclass
@@ -43,14 +50,6 @@ class TransformedUserData:
 
     id: int
     nickname: str
-    current_point: decimal.Decimal  # Текущий прогресс в уе
-    target_point: decimal.Decimal   # Целевой прогресс в уе
-    lost_weight: decimal.Decimal    # Сброшенные кг
-
-
-__all__ = [
-    "ExtractedUserData",
-    "SourceUser",
-    "SourceWeightRecord",
-    "TransformedUserData",
-]
+    current_point: Decimal
+    target_point: Decimal
+    lost_weight: Decimal

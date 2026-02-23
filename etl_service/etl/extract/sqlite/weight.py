@@ -10,7 +10,7 @@ from models import SourceWeightRecord
 logger = logging.getLogger(__name__)
 
 
-class WeightExtractor(BaseSQLiteExtractor):
+class WeightExtractor(BaseSQLiteExtractor[SourceWeightRecord]):
     """Извлечение данных о весе пользователей из SQLite."""
 
     async def extract(self) -> list[SourceWeightRecord]:

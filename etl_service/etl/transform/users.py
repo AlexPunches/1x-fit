@@ -2,11 +2,14 @@
 
 import logging
 from collections import defaultdict
-from decimal import Decimal
+from typing import TYPE_CHECKING
 
 from etl.transform.base import BaseTransformer
 from etl.transform.calculations import calculate_current_point, calculate_target_point
 from models import SourceUser, SourceWeightRecord, TransformedUserData
+
+if TYPE_CHECKING:
+    from decimal import Decimal
 
 logger = logging.getLogger(__name__)
 

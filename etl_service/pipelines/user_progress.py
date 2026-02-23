@@ -2,19 +2,20 @@
 
 import logging
 
-from etl.base import BasePipeline
 from etl.extract.sqlite.users import UserExtractor
 from etl.extract.sqlite.weight import WeightExtractor
 from etl.load.postgres.users import UserLoader
 from etl.registry import view_registry
-from etl.transform.users import UserTransformer, merge_user_weight_data
-from models import SourceUser, TransformedUserData
+from etl.transform.users import (
+    UserTransformer,
+    merge_user_weight_data,
+)
 
 logger = logging.getLogger(__name__)
 
 
 @view_registry.register(name="users")
-class UserProgressPipeline(BasePipeline[SourceUser, TransformedUserData]):
+class UserProgressPipeline:
     """ETL pipeline для витрины прогресса пользователей.
 
     Extract:

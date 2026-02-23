@@ -9,7 +9,7 @@ from models import SourceUser
 logger = logging.getLogger(__name__)
 
 
-class UserExtractor(BaseSQLiteExtractor):
+class UserExtractor(BaseSQLiteExtractor[SourceUser]):
     """Извлечение данных о пользователях из SQLite."""
 
     async def extract(self) -> list[SourceUser]:

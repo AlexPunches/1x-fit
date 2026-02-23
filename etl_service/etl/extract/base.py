@@ -3,9 +3,14 @@
 import logging
 import sqlite3
 from abc import abstractmethod
+from typing import TypeVar
 
 from config import etl_settings
 from etl.base import BaseExtractor
+
+__all__ = [
+    "BaseSQLiteExtractor",
+]
 
 logger = logging.getLogger(__name__)
 
@@ -13,8 +18,10 @@ CONNECTION_NOT_ESTABLISHED_MSG = (
     "Соединение не установлено. Вызовите connect() сначала."
 )
 
+ExtractData = TypeVar("ExtractData")
 
-class BaseSQLiteExtractor(BaseExtractor):
+
+class BaseSQLiteExtractor[ExtractData](BaseExtractor[ExtractData]):
     """Базовый класс для извлечения данных из SQLite."""
 
     def __init__(self) -> None:
@@ -38,5 +45,5 @@ class BaseSQLiteExtractor(BaseExtractor):
             self._connection = None
 
     @abstractmethod
-    async def extract(self) -> list:
+    async def extract(self) -> list[ExtractData]:
         """Извлечение данных из SQLite."""

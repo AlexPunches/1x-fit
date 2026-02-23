@@ -1,7 +1,7 @@
 """Пакет для извлечения данных."""
 
-from etl.extract.base import BaseExtractor
+from etl.extract.base import BaseSQLiteExtractor
 
 __all__ = [
-    "BaseExtractor",
+    "BaseSQLiteExtractor",
 ]
