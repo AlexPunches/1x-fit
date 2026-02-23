@@ -1,53 +1,56 @@
-"""Модели данных для витрины аналитики."""
+"""Модели данных для ETL процесса."""
 
-from dataclasses import dataclass
+import dataclasses
+import decimal
 from datetime import date
-from decimal import Decimal
 
 
-@dataclass
-class User:
-    """Модель пользователя."""
-
-    id: int
-    nickname: str | None
-
-
-@dataclass
-class Activity:
-    """Модель типа активности."""
+@dataclasses.dataclass
+class SourceUser:
+    """Пользователь из исходной БД SQLite."""
 
     id: int
-    name: str
-    unit: str
-    calories_per_unit: Decimal | None
+    username: str
+    start_weight: decimal.Decimal | None
+    target_weight: decimal.Decimal | None
+    height: decimal.Decimal | None
 
 
-@dataclass
-class WeightData:
-    """Модель данных веса."""
-
-    user_id: int
-    weight: Decimal
-    date: date
-
-
-@dataclass
-class ActivityData:
-    """Модель данных активности."""
+@dataclasses.dataclass
+class SourceWeightRecord:
+    """Запись о весе из исходной БД SQLite."""
 
     user_id: int
-    activity_id: int
-    date: date
-    value: Decimal
-    calories: int
+    weight: decimal.Decimal
+    record_date: date
 
 
-@dataclass
-class UserProgress:
-    """Модель прогресса пользователя."""
+@dataclasses.dataclass
+class ExtractedUserData:
+    """Данные пользователя после этапа Extract."""
 
-    user_id: int
-    target_point: Decimal
-    current_point: Decimal
-    lost_weight: Decimal
+    id: int
+    nickname: str
+    start_weight: decimal.Decimal
+    target_weight: decimal.Decimal
+    height: decimal.Decimal
+    current_weight: decimal.Decimal | None  # Может быть None, если нет записей о весе
+
+
+@dataclasses.dataclass
+class TransformedUserData:
+    """Данные пользователя после этапа Transform (для витрины)."""
+
+    id: int
+    nickname: str
+    current_point: decimal.Decimal  # Текущий прогресс в уе
+    target_point: decimal.Decimal   # Целевой прогресс в уе
+    lost_weight: decimal.Decimal    # Сброшенные кг
+
+
+__all__ = [
+    "ExtractedUserData",
+    "SourceUser",
+    "SourceWeightRecord",
+    "TransformedUserData",
+]

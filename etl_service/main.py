@@ -6,9 +6,8 @@ import pathlib
 import sys
 
 # Добавляем путь к корню проекта
-sys.path.append(str(pathlib.Path(__file__).parent.parent))
+sys.path.append(str(pathlib.Path(__file__).parent.absolute()))
 
-from config import etl_settings
 from init_tables import init_analytics_tables
 from scheduler import run_etl_scheduler
 

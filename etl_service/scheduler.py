@@ -2,16 +2,22 @@
 
 import asyncio
 import logging
+import signal
 
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from apscheduler.triggers.interval import IntervalTrigger
+
 from config import etl_settings
-from etl_processor import run_etl_process
+from pipelines.user_progress import UserProgressPipeline
 
 logger = logging.getLogger(__name__)
 
 
-run_etl_process_wrapper = run_etl_process  # Просто присваиваем асинхронную функцию напрямую
+async def run_etl_pipeline() -> None:
+    """Функция для запуска ETL pipeline."""
+    logger.info("Запуск ETL pipeline")
+    pipeline = UserProgressPipeline()
+    await pipeline.run()
 
 
 def setup_periodic_etl() -> AsyncIOScheduler:
@@ -24,28 +30,15 @@ def setup_periodic_etl() -> AsyncIOScheduler:
 
     # Добавление задания на выполнение ETL с интервалом из настроек
     scheduler.add_job(
-        func=run_etl_process_wrapper,
+        func=run_etl_pipeline,
         trigger=IntervalTrigger(minutes=etl_settings.interval_minutes),
         id="etl_job",
         name="ETL процесс для загрузки данных в витрину",
         replace_existing=True,
     )
 
-    logger.info(
-        "Планировщик ETL процесса запущен. ETL будет выполняться каждые %s минут(ы).",
-        etl_settings.interval_minutes,
-    )
-    logger.debug(f"Детали планировщика: интервал={etl_settings.interval_minutes} мин, размер пакета={etl_settings.batch_size}")
-
+    logger.info("Планировщик ETL запущен. ETL будет выполняться каждые %s минут(ы).", etl_settings.interval_minutes)
     return scheduler
-
-
-import functools
-import signal
-
-
-def signal_handler(stop_event: asyncio.Event) -> None:
-    stop_event.set()
 
 
 async def run_etl_scheduler() -> None:

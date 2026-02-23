@@ -19,7 +19,7 @@ class ETLSettings(BaseSettings):
     interval_minutes: int = Field(3, description="Интервал выполнения ETL в минутах")
 
     # Минимальный уровень логирования
-    log_min_level: str = Field("INFO", description="Уровень логирования (DEBUG, INFO, WARNING, ERROR)")
+    log_min_level: str = Field("INFO", description="Уровень логирования (DEBUG, INFO, WARNING, ERROR, CRITICAL)")
 
     # Anal DB
     anal_postgres_db: str | None = None
@@ -36,7 +36,7 @@ class ETLSettings(BaseSettings):
 etl_settings = ETLSettings()
 
 
-def setup_logging():
+def setup_logging() -> None:
     """Настройка формата и уровня логирования."""
     log_format = "%(asctime)s | %(name)s | %(levelname)s | %(message)s | %(filename)s:%(lineno)d"
     logging.basicConfig(level=getattr(logging, etl_settings.log_min_level.upper()), format=log_format)
@@ -44,3 +44,8 @@ def setup_logging():
 
 # Автоматическая настройка логирования при импорте модуля
 setup_logging()
+
+
+__all__ = [
+    "etl_settings",
+]
